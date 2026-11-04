@@ -1,0 +1,92 @@
+import SiteLayout from '@/components/layout/SiteLayout';
+import { lazy, Suspense } from 'react';
+import { AdminAccessProvider } from '@/context/AdminAccessContext';
+import { AuthProvider } from '@/context/AuthContext';
+import { CompareProvider } from '@/context/CompareContext';
+import { ShopProvider } from '@/context/ShopContext';
+import { isInfoPageSlug } from '@/content/infoPages';
+import { useLocation } from '@/lib/navigation';
+const AccountPage = lazy(() => import('@/pages/AccountPage'));
+const AddressesPage = lazy(() => import('@/pages/AddressesPage'));
+const AdminContentPage = lazy(() => import('@/pages/AdminContentPage'));
+const AdminDashboardPage = lazy(() => import('@/pages/AdminDashboardPage'));
+const AdminCustomerDetailPage = lazy(() => import('@/pages/AdminCustomerDetailPage'));
+const AdminCustomersPage = lazy(() => import('@/pages/AdminCustomersPage'));
+const AdminInfoPageEditPage = lazy(() => import('@/pages/AdminInfoPageEditPage'));
+const AdminInfoPagesPage = lazy(() => import('@/pages/AdminInfoPagesPage'));
+const AdminGatewaysPage = lazy(() => import('@/pages/AdminGatewaysPage'));
+const AdminOrderDetailPage = lazy(() => import('@/pages/AdminOrderDetailPage'));
+const AdminOrderInvoicePage = lazy(() => import('@/pages/AdminOrderInvoicePage'));
+const AdminOrdersPage = lazy(() => import('@/pages/AdminOrdersPage'));
+const AdminPaymentsPage = lazy(() => import('@/pages/AdminPaymentsPage'));
+const AdminSettingsPage = lazy(() => import('@/pages/AdminSettingsPage'));
+const AuthPage = lazy(() => import('@/pages/AuthPage'));
+const CartPage = lazy(() => import('@/pages/CartPage'));
+const CheckoutPage = lazy(() => import('@/pages/CheckoutPage'));
+const HomePage = lazy(() => import('@/pages/HomePage'));
+const InfoPage = lazy(() => import('@/pages/InfoPage'));
+const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
+const OrderPage = lazy(() => import('@/pages/OrderPage'));
+const OrdersPage = lazy(() => import('@/pages/OrdersPage'));
+const ProductPage = lazy(() => import('@/pages/ProductPage'));
+const ShopPage = lazy(() => import('@/pages/ShopPage'));
+const WishlistPage = lazy(() => import('@/pages/WishlistPage'));
+
+function Routes() {
+  const { pathname } = useLocation();
+  const productMatch = pathname.match(/^\/product\/([^/]+)\/?$/);
+  const orderMatch = pathname.match(/^\/account\/orders\/([^/]+)\/?$/);
+  const adminOrderMatch = pathname.match(/^\/admin\/orders\/([^/]+)\/?$/);
+  const adminInvoiceMatch = pathname.match(/^\/admin\/orders\/([^/]+)\/invoice\/?$/);
+  const adminCustomerMatch = pathname.match(/^\/admin\/customers\/([^/]+)\/?$/);
+  const adminPageMatch = pathname.match(/^\/admin\/pages\/([^/]+)\/?$/);
+
+  if (pathname === '/') return <HomePage />;
+  if (pathname === '/shop' || pathname === '/shop/') return <ShopPage />;
+  if (productMatch) return <ProductPage slug={decodeURIComponent(productMatch[1])} />;
+  if (pathname === '/cart') return <CartPage />;
+  if (pathname === '/checkout') return <CheckoutPage />;
+  if (pathname === '/wishlist') return <WishlistPage />;
+  if (pathname === '/login') return <AuthPage mode="login" />;
+  if (pathname === '/register') return <AuthPage mode="register" />;
+  if (pathname === '/account') return <AccountPage />;
+  if (pathname === '/account/addresses') return <AddressesPage />;
+  if (pathname === '/account/orders') return <OrdersPage />;
+  if (pathname === '/admin' || pathname === '/admin/') return <AdminDashboardPage />;
+  if (pathname === '/admin/payments') return <AdminPaymentsPage />;
+  if (pathname === '/admin/gateways') return <AdminGatewaysPage />;
+  if (pathname === '/admin/settings') return <AdminSettingsPage />;
+  if (pathname === '/admin/content') return <AdminContentPage />;
+  if (pathname === '/admin/orders' || pathname === '/admin/orders/') return <AdminOrdersPage />;
+  if (pathname === '/admin/customers' || pathname === '/admin/customers/') return <AdminCustomersPage />;
+  if (pathname === '/admin/pages' || pathname === '/admin/pages/') return <AdminInfoPagesPage />;
+  if (adminPageMatch) {
+    const pageSlug = decodeURIComponent(adminPageMatch[1]);
+    return isInfoPageSlug(pageSlug) ? <AdminInfoPageEditPage slug={pageSlug} /> : <NotFoundPage />;
+  }
+  if (adminCustomerMatch) return <AdminCustomerDetailPage customerId={decodeURIComponent(adminCustomerMatch[1])} />;
+  if (adminInvoiceMatch) return <AdminOrderInvoicePage orderId={decodeURIComponent(adminInvoiceMatch[1])} />;
+  if (adminOrderMatch) return <AdminOrderDetailPage orderId={decodeURIComponent(adminOrderMatch[1])} />;
+  if (orderMatch) return <OrderPage id={decodeURIComponent(orderMatch[1])} />;
+  const infoSlug = pathname.slice(1);
+  if (isInfoPageSlug(infoSlug)) return <InfoPage key={infoSlug} slug={infoSlug} />;
+  return <NotFoundPage />;
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AdminAccessProvider>
+        <ShopProvider>
+          <CompareProvider>
+            <SiteLayout>
+              <Suspense fallback={<div className="container-nova py-16 text-center text-ink-700">در حال بارگذاری...</div>}><Routes /></Suspense>
+            </SiteLayout>
+          </CompareProvider>
+        </ShopProvider>
+      </AdminAccessProvider>
+    </AuthProvider>
+  );
+}
+
+export default App;
