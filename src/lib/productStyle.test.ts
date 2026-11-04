@@ -20,9 +20,9 @@ describe('cardBackground', () => {
   });
 
   it('only accepts https image addresses without characters that could break out of url()', () => {
-    expect(cardBackground('image', 'https://cdn.example.com/a.png').style.backgroundImage).toBe('url("https://cdn.example.com/a.png")');
-    expect(cardBackground('image', 'http://cdn.example.com/a.png').style.backgroundImage).toBeUndefined();
-    expect(cardBackground('image', 'https://x.com/a.png");color:red').style.backgroundImage).toBeUndefined();
+    expect(cardBackground('image', 'https://wsrv.nl/?url=https%3A%2F%2Fcdn.example.com%2Fa.png&output=webp&q=85').style.backgroundImage).toBe('url("https://wsrv.nl/?url=https%3A%2F%2Fcdn.example.com%2Fa.png&output=webp&q=85")');
+    expect(cardBackground('image', 'https://wsrv.nl/?url=http%3A%2F%2Fcdn.example.com%2Fa.png&output=webp&q=85').style.backgroundImage).toBeUndefined();
+    expect(cardBackground('image', 'https://wsrv.nl/?url=https%3A%2F%2Fx.com%2Fa.png&output=webp&q=85");color:red').style.backgroundImage).toBeUndefined();
   });
 
   it('falls back to the default colour for unknown or malformed values', () => {
