@@ -18,10 +18,7 @@ import { fetchPaymentSettings, startOnlinePayment } from '@/lib/payments';
 import { useStoreSettings } from '@/hooks/useStoreSettings';
 import { estimateDeliveryFee } from '@/lib/storeSettings';
 
-const DELIVERY_OPTIONS: { value: DeliveryMethod; description: string }[] = [
-  { value: 'courier', description: 'تحویل با پیک در تهران و کلان‌شهرها، ۱ تا ۲ روز کاری' },
-  { value: 'post', description: 'ارسال با پست پیشتاز به سراسر کشور، ۳ تا ۶ روز کاری' },
-];
+
 
 const ONLINE_PROVIDER_DETAILS: Record<string, string> = {
   zarinpal: 'پرداخت امن با تمام کارت‌های عضو شتاب',
@@ -106,7 +103,7 @@ function CheckoutContent() {
   const discount = promo.discount;
   const total = Math.max(0, subtotal - discount + deliveryFee);
   const paymentReady = paymentMethod === 'card' ? options.cardEnabled : selectedProvider !== null;
-  const slotReady = deliveryMethod === 'post' || deliverySlot !== null;
+  const slotReady = true;
   const canSubmit =
     !submitting &&
     addressId !== null &&
