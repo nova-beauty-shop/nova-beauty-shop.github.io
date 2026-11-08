@@ -449,3 +449,14 @@ html, body { width: 100% !important; max-width: 100vw !important; overflow-x: cl
     box-shadow: 0 4px 16px rgba(88, 28, 45, 0.4) !important;
   }
 }
+
+/* hero-discover-btn-fix */
+@media (max-width: 640px) {
+  section.relative.overflow-hidden a.btn-primary,
+  section.relative.overflow-hidden button,
+  .hero-section a {
+    width: auto !important;
+    max-width: max-content !important;
+    display: inline-flex !important;
+  }
+}
