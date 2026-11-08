@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import RequireAuth from '@/components/account/RequireAuth';
 import AddressPicker from '@/components/checkout/AddressPicker';
-import DeliverySlotPicker from '@/components/checkout/DeliverySlotPicker';
 import Link from '@/components/common/Link';
 import { EmptyState, ErrorState, SkeletonGrid } from '@/components/common/StateViews';
 import { useAsync } from '@/hooks/useAsync';
@@ -103,8 +102,7 @@ function CheckoutContent() {
   const discount = promo.discount;
   const total = Math.max(0, subtotal - discount + deliveryFee);
   const paymentReady = paymentMethod === 'card' ? options.cardEnabled : selectedProvider !== null;
-  const slotReady = true;
-  const canSubmit =
+    const canSubmit =
     !submitting &&
     addressId !== null &&
     details.unavailableCount === 0 &&
