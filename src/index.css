@@ -359,3 +359,21 @@ html, body { width: 100% !important; max-width: 100vw !important; overflow-x: cl
     gap: 12px !important;
   }
 }
+
+/* dg-mobile-button-fix */
+@media (max-width: 640px) {
+  /* بزرگ و برجسته کردن دکمه افزودن به سبد خرید و دکمه‌های اصلی */
+  .btn-primary {
+    height: 52px !important;
+    width: 100% !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    border-radius: 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background-color: #581c2d !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(88, 28, 45, 0.3) !important;
+  }
+}
