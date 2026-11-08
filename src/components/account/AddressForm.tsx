@@ -13,11 +13,11 @@ const EMPTY_FORM: AddressInput = {
 
 function validate(form: AddressInput): string | null {
   if (form.recipientName.trim().length < 2) return "نام گیرنده را وارد کنید.";
-  if (!/^0d{10}$/.test(normalizeDigits(form.phone.trim()))) return "شماره تماس باید ۱۱ رقمی و با ۰ شروع شود.";
+  if (!/^0\d{10}$/.test(normalizeDigits(form.phone.trim()))) return "شماره تماس باید ۱۱ رقمی و با ۰ شروع شود.";
   if (form.province.trim().length < 2) return "استان را وارد کنید.";
   if (form.city.trim().length < 2) return "شهر را وارد کنید.";
   if (form.street.trim().length < 5) return "نشانی کامل را وارد کنید.";
-  if (!/^d{10}$/.test(normalizeDigits(form.postalCode.trim()))) return "کد پستی باید ۱۰ رقم باشد.";
+  if (!/^\d{10}$/.test(normalizeDigits(form.postalCode.trim()))) return "کد پستی باید ۱۰ رقم باشد.";
   return null;
 }
 
