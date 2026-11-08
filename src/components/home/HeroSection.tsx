@@ -113,11 +113,11 @@ export default function HeroSection({ banners }: { banners: Banner[] }) {
                     {banner.subtitle && (
                       <p className="max-w-lg text-base leading-[1.8] text-ivory-200 md:text-lg">{banner.subtitle}</p>
                     )}
-                    <div className="flex flex-wrap gap-3 pt-2">
+                    <div className="flex flex-nowrap items-center gap-2 pt-2 sm:gap-3">
                       <Link
                         to={banner.ctaUrl || '/shop'}
                         tabIndex={active ? 0 : -1}
-                        className="inline-flex items-center justify-center gap-2 rounded-full bg-white text-burgundy-900 px-4 py-2 text-xs sm:text-sm font-bold shadow-md hover:bg-ivory-100 transition !w-auto !inline-flex !flex-none"
+                        className="inline-flex h-10 items-center justify-center gap-1.5 whitespace-nowrap rounded-full bg-white px-4 text-xs font-bold text-burgundy-900 shadow-md transition hover:bg-ivory-100 sm:h-12 sm:px-6 sm:text-sm"
                       >
                         {banner.ctaLabel || 'مشاهده'}
                         <ArrowLeft className="h-4 w-4" aria-hidden="true" />
@@ -125,7 +125,7 @@ export default function HeroSection({ banners }: { banners: Banner[] }) {
                       <Link
                         to="/shop"
                         tabIndex={active ? 0 : -1}
-                        className="btn-outline border-ivory-50/60 text-ivory-50 hover:border-ivory-50 hover:bg-ivory-50 hover:text-burgundy-800"
+                        className="btn-outline !px-4 !text-xs whitespace-nowrap border-ivory-50/60 text-ivory-50 hover:border-ivory-50 hover:bg-ivory-50 hover:text-burgundy-800 sm:!px-6 sm:!text-sm"
                       >
                         همه محصولات
                       </Link>
