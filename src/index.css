@@ -480,3 +480,14 @@ html, body { width: 100% !important; max-width: 100vw !important; overflow-x: cl
     flex: none !important;
   }
 }
+
+/* strict-compact-hero-btn */
+@media (max-width: 640px) {
+  section.relative.overflow-hidden a[class*="bg-white"],
+  section.relative.overflow-hidden .inline-flex {
+    width: auto !important;
+    max-width: max-content !important;
+    display: inline-flex !important;
+    flex: none !important;
+  }
+}
