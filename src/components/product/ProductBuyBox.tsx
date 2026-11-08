@@ -144,7 +144,7 @@ export default function ProductBuyBox({ product }: { product: Product }) {
             onChange={setQuantity}
           />
         )}
-        <button type="button" onClick={handleAdd} disabled={outOfStock} className="btn-primary h-12 flex-1">
+        <button type="button" onClick={handleAdd} disabled={outOfStock} className="btn-primary w-full sm:w-auto h-[52px] text-base font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg">
           {added ? (
             <>
               <Check className="h-4 w-4" /> به سبد خرید اضافه شد
