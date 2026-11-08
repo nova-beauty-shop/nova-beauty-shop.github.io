@@ -321,3 +321,15 @@ html, body { width: 100% !important; max-width: 100vw !important; overflow-x: cl
     overflow-x: hidden !important;
   }
 }
+
+/* mobile-btn-fix */
+@media (max-width: 640px) {
+  .btn-primary {
+    height: 48px !important;
+    width: 100% !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    border-radius: 16px !important;
+    box-shadow: 0 4px 14px rgba(108, 37, 65, 0.25) !important;
+  }
+}
