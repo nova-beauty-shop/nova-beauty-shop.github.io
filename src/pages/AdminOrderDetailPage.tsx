@@ -145,7 +145,7 @@ function AdminOrderDetailContent({ orderId, access }: { orderId: string; access:
                 <p className="mt-3 text-sm leading-[1.8] text-ink-700">
                   {order.data.province}، {order.data.city}، {order.data.street} · کد پستی <span dir="ltr">{order.data.postalCode}</span>
                 </p>
-                <p className="mt-3 text-sm text-ink-500">روش ارسال: {DELIVERY_LABELS[order.data.deliveryMethod]}</p>
+                
               </Card>
 
               <Link

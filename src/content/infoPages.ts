@@ -72,7 +72,7 @@ export const INFO_PAGES: Record<InfoPageSlug, InfoPage> = {
         heading: 'هزینه ارسال',
         paragraphs: [
           'برای سفارش‌های بالای {{freeShippingThreshold}}، ارسال سراسری با پیک بدون هزینه انجام می‌شود.',
-          'هزینه ارسال سفارش‌های زیر {{freeShippingThreshold}} بر اساس شهر مقصد و روش ارسال محاسبه شده و پیش از پرداخت نمایش داده می‌شود.',
+          'هزینه ارسال سفارش‌های زیر {{freeShippingThreshold}} بر اساس شهر مقصد و شهر مقصد محاسبه شده و پیش از پرداخت نمایش داده می‌شود.',
         ],
       },
       {
