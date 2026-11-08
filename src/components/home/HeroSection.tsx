@@ -98,7 +98,7 @@ export default function HeroSection({ banners }: { banners: Banner[] }) {
                     alt=""
                     loading={position === 0 ? 'eager' : 'lazy'}
                     decoding="async"
-                    className="hero-img h-full w-full object-cover"
+                    className="hero-img h-full w-auto object-cover"
                   />
                 )}
               </div>
