@@ -154,10 +154,10 @@ function CheckoutContent() {
   }
 
   return (
-    <div className="container-nova py-6 sm:py-10 md:py-16 overflow-x-hidden">
+    <div className="container-nova py-4 sm:py-10 md:py-16 w-full max-w-full overflow-hidden">
       <h1 className="mb-5 text-2xl sm:mb-8 sm:text-3xl md:text-4xl">تسویه حساب</h1>
 
-      <div className="grid min-w-0 gap-5 sm:gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="grid w-full max-w-full gap-5 sm:gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="min-w-0 space-y-5 sm:space-y-8">
           <section className="min-w-0 space-y-4 sm:space-y-6 rounded-2xl sm:rounded-3xl border border-ivory-300 bg-ivory-50 p-4 sm:p-6 shadow-soft md:p-8">
             <h2 className="text-base sm:text-xl">نشانی ارسال</h2>
