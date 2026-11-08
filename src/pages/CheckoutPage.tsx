@@ -170,45 +170,7 @@ function CheckoutContent() {
             />
           </section>
 
-          <section className="min-w-0 space-y-4 sm:space-y-6 rounded-2xl sm:rounded-3xl border border-ivory-300 bg-ivory-50 p-4 sm:p-6 shadow-soft md:p-8">
-            <h2 className="text-base sm:text-xl">روش ارسال</h2>
-            <div role="radiogroup" className="grid min-w-0 gap-3 sm:gap-4 md:grid-cols-2">
-              <legend className="sr-only">روش ارسال</legend>
-              {DELIVERY_OPTIONS.map((option) => (
-                <label
-                  key={option.value}
-                  className={`cursor-pointer rounded-xl sm:rounded-2xl border p-3.5 sm:p-5 transition ${
-                    deliveryMethod === option.value
-                      ? 'border-burgundy-700 bg-ivory-200/60 shadow-soft'
-                      : 'border-ivory-300 hover:border-gold-500'
-                  }`}
-                >
-                  <span className="flex items-start gap-3">
-                    <input
-                      type="radio"
-                      name="delivery-method"
-                      value={option.value}
-                      checked={deliveryMethod === option.value}
-                      onChange={() => setDeliveryMethod(option.value)}
-                      className="mt-1.5 h-4 w-4 accent-burgundy-700"
-                    />
-                    <span className="space-y-1">
-                      <span className="block font-medium text-ink-900">{DELIVERY_LABELS[option.value]}</span>
-                      <span className="block text-sm leading-[1.8] text-ink-500">{option.description}</span>
-                    </span>
-                  </span>
-                </label>
-              ))}
-            </div>
-            {deliveryMethod === 'courier' && subtotal < store.data.courierFreeThresholdToman && (
-              <p className="text-sm text-ink-500">
-                برای سفارش‌های بالای {formatToman(store.data.courierFreeThresholdToman)} ارسال با پیک رایگان است.
-              </p>
-            )}
-            {deliveryMethod === 'courier' && (
-              <DeliverySlotPicker value={deliverySlot} onChange={setDeliverySlot} />
-            )}
-          </section>
+          
 
           <section className="min-w-0 space-y-4 sm:space-y-6 rounded-2xl sm:rounded-3xl border border-ivory-300 bg-ivory-50 p-4 sm:p-6 shadow-soft md:p-8">
             <h2 className="text-base sm:text-xl">روش پرداخت</h2>
