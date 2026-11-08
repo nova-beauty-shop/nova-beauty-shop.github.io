@@ -37,7 +37,7 @@ export default function DeliverySlotPicker({
   return (
     <div className="min-w-0 max-w-full space-y-3.5 sm:space-y-5">
       <p className="text-xs font-medium text-ink-900 sm:text-sm">روز تحویل</p>
-      <div role="radiogroup" aria-label="روز تحویل" className="-mx-1 flex max-w-full gap-2 overflow-x-auto px-1 pb-2 sm:gap-3">
+      <div role="radiogroup" aria-label="روز تحویل" className="flex w-full max-w-full gap-2 overflow-x-auto pb-2 sm:gap-3">
         {days.map((day) => (
           <label
             key={day.value}

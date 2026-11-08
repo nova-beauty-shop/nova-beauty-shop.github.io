@@ -14,7 +14,7 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
   const texts = useSiteTexts();
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col w-full max-w-[100vw] overflow-x-hidden overflow-x-clip">
       {store.data && (
         <div className="bg-burgundy-800 px-4 py-2 text-center text-xs tracking-wide text-ivory-100">
           {fillStoreTokens(texts.announcement_banner, store.data)}
