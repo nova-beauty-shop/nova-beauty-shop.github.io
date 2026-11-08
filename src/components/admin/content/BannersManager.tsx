@@ -116,7 +116,7 @@ export default function BannersManager({ canEdit }: { canEdit: boolean }) {
                 </span>
               </h3>
               {canEdit && !editing && (
-                <button type="button" onClick={() => startNew('hero')} className="btn-primary h-10 px-5 text-sm">
+                <button type="button" onClick={() => startNew('hero')} className="inline-flex items-center justify-center gap-2 rounded-full bg-white text-burgundy-900 px-5 py-2.5 text-xs sm:text-sm font-bold shadow-md hover:bg-ivory-100 transition">
                   <Plus className="h-4 w-4" aria-hidden="true" />
                   افزودن اسلاید
                 </button>
@@ -317,7 +317,7 @@ function BannerEditor({ initial, onSaved, onCancel }: { initial: BannerInput; on
       </div>
       <FormStatus status={status} />
       <div className="flex flex-wrap gap-3 sm:col-span-2">
-        <button type="submit" disabled={saving} className="btn-primary">
+        <button type="submit" disabled={saving} className="inline-flex items-center justify-center gap-2 rounded-full bg-white text-burgundy-900 px-5 py-2.5 text-xs sm:text-sm font-bold shadow-md hover:bg-ivory-100 transition">
           {saving ? 'در حال ذخیره...' : draft.placement === 'hero' ? 'ذخیره اسلاید' : 'ذخیره بنر'}
         </button>
         <button type="button" onClick={onCancel} disabled={saving} className="btn-outline">

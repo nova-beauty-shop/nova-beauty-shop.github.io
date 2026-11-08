@@ -117,7 +117,7 @@ export default function HeroSection({ banners }: { banners: Banner[] }) {
                       <Link
                         to={banner.ctaUrl || '/shop'}
                         tabIndex={active ? 0 : -1}
-                        className="btn-primary bg-ivory-50 text-burgundy-800 hover:bg-gold-400 hover:text-ink-900"
+                        className="inline-flex items-center justify-center gap-2 rounded-full bg-white text-burgundy-900 px-5 py-2.5 text-xs sm:text-sm font-bold shadow-md hover:bg-ivory-100 transition"
                       >
                         {banner.ctaLabel || 'مشاهده'}
                         <ArrowLeft className="h-4 w-4" aria-hidden="true" />

@@ -13,7 +13,7 @@ export default function PromoBanner({ banner, reverse = false }: { banner: Banne
           <h2 className="text-3xl md:text-4xl">{banner.title}</h2>
           {banner.subtitle && <p className="max-w-md leading-[1.8] text-ink-700">{banner.subtitle}</p>}
           <div>
-            <Link to={banner.ctaUrl} className="btn-primary">
+            <Link to={banner.ctaUrl} className="inline-flex items-center justify-center gap-2 rounded-full bg-white text-burgundy-900 px-5 py-2.5 text-xs sm:text-sm font-bold shadow-md hover:bg-ivory-100 transition">
               {banner.ctaLabel || 'مشاهده'}
             </Link>
           </div>
