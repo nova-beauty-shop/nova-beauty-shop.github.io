@@ -53,8 +53,8 @@ function CheckoutContent() {
   const store = useStoreSettings();
   const paymentOptions = useAsync(loadPaymentOptions, []);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
-  const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('courier');
-  const [deliverySlot, setDeliverySlot] = useState<string | null>(null);
+  
+  
   const [paymentChoice, setPaymentChoice] = useState<PaymentMethod | null>(null);
   const [providerChoice, setProviderChoice] = useState<string | null>(null);
   const [installmentChoice, setInstallmentChoice] = useState<Installments>(1);
@@ -102,7 +102,7 @@ function CheckoutContent() {
 
   const addressId = selectedAddressId ?? addresses.data?.[0]?.id ?? null;
   const subtotal = details.subtotal;
-  const deliveryFee = estimateDeliveryFee(deliveryMethod, subtotal, store.data);
+  const deliveryFee = 0;
   const discount = promo.discount;
   const total = Math.max(0, subtotal - discount + deliveryFee);
   const paymentReady = paymentMethod === 'card' ? options.cardEnabled : selectedProvider !== null;
@@ -113,7 +113,7 @@ function CheckoutContent() {
     details.unavailableCount === 0 &&
     details.lines.length > 0 &&
     paymentReady &&
-    slotReady &&
+    
     !promo.couponErrorMessage;
 
   async function handleSubmit() {
@@ -124,13 +124,12 @@ function CheckoutContent() {
     try {
       orderId = await placeOrder({
         addressId,
-        deliveryMethod,
         items: details.lines.map(({ line, quantity }) => ({
           productId: line.productId,
           variantId: line.variantId,
           quantity,
         })),
-        deliverySlot: deliveryMethod === 'courier' ? deliverySlot : null,
+        
         couponCode: promo.appliedCoupon?.code ?? null,
         freeSampleId: promo.selectedSample?.id ?? null,
         idempotencyKey,
