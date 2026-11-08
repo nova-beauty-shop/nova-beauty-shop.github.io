@@ -491,3 +491,27 @@ html, body { width: 100% !important; max-width: 100vw !important; overflow-x: cl
     flex: none !important;
   }
 }
+
+/* perfect-mobile-ui-final */
+@media (max-width: 640px) {
+  /* دکمه افزودن به سبد خرید: بزرگ و تمام‌عرض */
+  button.btn-primary, .btn-primary {
+    width: 100% !important;
+    height: 52px !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    border-radius: 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* دکمه کشف مجموعه روی اسلایدر: کوچک و کامپکت */
+  section.relative.overflow-hidden a.bg-white,
+  section.relative.overflow-hidden .inline-flex.rounded-full {
+    width: auto !important;
+    max-width: max-content !important;
+    display: inline-flex !important;
+    flex: none !important;
+  }
+}
