@@ -1,20 +1,20 @@
-const TEHRAN_TIME_ZONE = 'Asia/Tehran';
+const TEHRAN_TIME_ZONE = "Asia/Tehran";
 
 export const DELIVERY_SLOTS = [
-  { value: '09-12', label: '۹ تا ۱۲' },
-  { value: '12-15', label: '۱۲ تا ۱۵' },
-  { value: '15-18', label: '۱۵ تا ۱۸' },
-  { value: '18-21', label: '۱۸ تا ۲۱' },
+  { value: "09-12", label: "۹ تا ۱۲" },
+  { value: "12-15", label: "۱۲ تا ۱۵" },
+  { value: "15-18", label: "۱۵ تا ۱۸" },
+  { value: "18-21", label: "۱۸ تا ۲۱" },
 ] as const;
 
 function upcomingDays(count: number): { value: string; label: string }[] {
-  const today = new Date().toLocaleDateString('en-CA', { timeZone: TEHRAN_TIME_ZONE });
-  const [year, month, day] = today.split('-').map(Number);
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: TEHRAN_TIME_ZONE });
+  const [year, month, day] = today.split("-").map(Number);
   return Array.from({ length: count }, (_, offset) => {
     const date = new Date(Date.UTC(year, month - 1, day + offset));
     return {
       value: date.toISOString().slice(0, 10),
-      label: date.toLocaleDateString('fa-IR', { timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long' }),
+      label: date.toLocaleDateString("fa-IR", { timeZone: "UTC", weekday: "long", day: "numeric", month: "long" }),
     };
   });
 }
@@ -35,17 +35,16 @@ export default function DeliverySlotPicker({
   const selectedSlot = value?.slice(11) ?? null;
 
   return (
-    <div className="space-y-5">
-      <p className="text-sm font-medium text-ink-900">روز تحویل</p>
-      <fieldset className="flex gap-3 overflow-x-auto pb-2">
-        <legend className="sr-only">روز تحویل</legend>
+    <div className="min-w-0 max-w-full space-y-3.5 sm:space-y-5">
+      <p className="text-xs font-medium text-ink-900 sm:text-sm">روز تحویل</p>
+      <div role="radiogroup" aria-label="روز تحویل" className="-mx-1 flex max-w-full gap-2 overflow-x-auto px-1 pb-2 sm:gap-3">
         {days.map((day) => (
           <label
             key={day.value}
-            className={`flex min-w-[9.5rem] cursor-pointer flex-col rounded-2xl border px-4 py-3 text-sm transition ${
+            className={`flex min-w-[7.25rem] shrink-0 cursor-pointer flex-col rounded-xl border px-3 py-2.5 text-center text-xs transition sm:min-w-[9rem] sm:rounded-2xl sm:px-4 sm:py-3 sm:text-sm ${
               selectedDay === day.value
-                ? 'border-burgundy-700 bg-ivory-200/60 text-ink-900 shadow-soft'
-                : 'border-ivory-300 text-ink-700 hover:border-gold-500'
+                ? "border-burgundy-700 bg-ivory-200/60 font-medium text-ink-900 shadow-soft"
+                : "border-ivory-300 bg-ivory-50 text-ink-700 hover:border-gold-500"
             }`}
           >
             <input
@@ -56,22 +55,21 @@ export default function DeliverySlotPicker({
               onChange={() => onChange(deliverySlotValue(day.value, selectedSlot ?? DELIVERY_SLOTS[0].value))}
               className="sr-only"
             />
-            <span className="font-medium">{day.label}</span>
+            <span className="truncate font-medium">{day.label}</span>
           </label>
         ))}
-      </fieldset>
+      </div>
 
-      <p className="text-sm font-medium text-ink-900">بازه ساعتی</p>
-      <fieldset className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <legend className="sr-only">بازه ساعتی</legend>
+      <p className="text-xs font-medium text-ink-900 sm:text-sm">بازه ساعتی</p>
+      <div role="radiogroup" aria-label="بازه ساعتی" className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-4">
         {DELIVERY_SLOTS.map((slot) => (
           <label
             key={slot.value}
-            className={`cursor-pointer rounded-2xl border px-3 py-3 text-center text-sm transition ${
+            className={`cursor-pointer rounded-xl border px-2.5 py-2.5 text-center text-xs transition sm:rounded-2xl sm:px-3 sm:py-3 sm:text-sm ${
               selectedSlot === slot.value
-                ? 'border-burgundy-700 bg-ivory-200/60 font-medium text-ink-900 shadow-soft'
-                : 'border-ivory-300 text-ink-700 hover:border-gold-500'
-            } ${selectedDay ? '' : 'opacity-60'}`}
+                ? "border-burgundy-700 bg-ivory-200/60 font-medium text-ink-900 shadow-soft"
+                : "border-ivory-300 bg-ivory-50 text-ink-700 hover:border-gold-500"
+            } ${selectedDay ? "" : "opacity-60"}`}
           >
             <input
               type="radio"
@@ -85,7 +83,7 @@ export default function DeliverySlotPicker({
             {slot.label}
           </label>
         ))}
-      </fieldset>
+      </div>
       {!selectedDay && <p className="text-xs text-ink-500">ابتدا روز تحویل را انتخاب کنید.</p>}
     </div>
   );

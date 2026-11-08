@@ -154,13 +154,13 @@ function CheckoutContent() {
   }
 
   return (
-    <div className="container-nova py-12 md:py-16">
-      <h1 className="mb-10 text-3xl md:text-4xl">تسویه حساب</h1>
+    <div className="container-nova py-6 sm:py-10 md:py-16 overflow-x-hidden">
+      <h1 className="mb-5 text-2xl sm:mb-8 sm:text-3xl md:text-4xl">تسویه حساب</h1>
 
-      <div className="grid gap-10 lg:grid-cols-[1fr_380px]">
-        <div className="space-y-10">
-          <section className="space-y-6 rounded-3xl border border-ivory-300 bg-ivory-50 p-6 shadow-soft md:p-8">
-            <h2 className="text-xl">نشانی ارسال</h2>
+      <div className="grid min-w-0 gap-5 sm:gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="min-w-0 space-y-5 sm:space-y-8">
+          <section className="min-w-0 space-y-4 sm:space-y-6 rounded-2xl sm:rounded-3xl border border-ivory-300 bg-ivory-50 p-4 sm:p-6 shadow-soft md:p-8">
+            <h2 className="text-base sm:text-xl">نشانی ارسال</h2>
             <AddressPicker
               addresses={addresses.data}
               loading={addresses.loading}
@@ -171,14 +171,14 @@ function CheckoutContent() {
             />
           </section>
 
-          <section className="space-y-6 rounded-3xl border border-ivory-300 bg-ivory-50 p-6 shadow-soft md:p-8">
-            <h2 className="text-xl">روش ارسال</h2>
-            <fieldset className="grid gap-4 md:grid-cols-2">
+          <section className="min-w-0 space-y-4 sm:space-y-6 rounded-2xl sm:rounded-3xl border border-ivory-300 bg-ivory-50 p-4 sm:p-6 shadow-soft md:p-8">
+            <h2 className="text-base sm:text-xl">روش ارسال</h2>
+            <div role="radiogroup" className="grid min-w-0 gap-3 sm:gap-4 md:grid-cols-2">
               <legend className="sr-only">روش ارسال</legend>
               {DELIVERY_OPTIONS.map((option) => (
                 <label
                   key={option.value}
-                  className={`cursor-pointer rounded-2xl border p-5 transition ${
+                  className={`cursor-pointer rounded-xl sm:rounded-2xl border p-3.5 sm:p-5 transition ${
                     deliveryMethod === option.value
                       ? 'border-burgundy-700 bg-ivory-200/60 shadow-soft'
                       : 'border-ivory-300 hover:border-gold-500'
@@ -200,7 +200,7 @@ function CheckoutContent() {
                   </span>
                 </label>
               ))}
-            </fieldset>
+            </div>
             {deliveryMethod === 'courier' && subtotal < store.data.courierFreeThresholdToman && (
               <p className="text-sm text-ink-500">
                 برای سفارش‌های بالای {formatToman(store.data.courierFreeThresholdToman)} ارسال با پیک رایگان است.
@@ -211,9 +211,9 @@ function CheckoutContent() {
             )}
           </section>
 
-          <section className="space-y-6 rounded-3xl border border-ivory-300 bg-ivory-50 p-6 shadow-soft md:p-8">
-            <h2 className="text-xl">روش پرداخت</h2>
-            <fieldset className="grid gap-4 md:grid-cols-2">
+          <section className="min-w-0 space-y-4 sm:space-y-6 rounded-2xl sm:rounded-3xl border border-ivory-300 bg-ivory-50 p-4 sm:p-6 shadow-soft md:p-8">
+            <h2 className="text-base sm:text-xl">روش پرداخت</h2>
+            <div role="radiogroup" className="grid min-w-0 gap-3 sm:gap-4 md:grid-cols-2">
               <legend className="sr-only">روش پرداخت</legend>
               <PaymentOptionCard
                 name="payment-method"
@@ -239,12 +239,12 @@ function CheckoutContent() {
                   options.online.length === 0 ? 'درگاه پرداخت آنلاین در حال حاضر فعال نیست' : 'پرداخت لحظه‌ای با کارت بانکی یا خرید اقساطی'
                 }
               />
-            </fieldset>
+            </div>
 
             {paymentMethod === 'online' && options.online.length > 0 && (
               <div className="space-y-4">
                 <p className="text-sm font-medium text-ink-900">انتخاب درگاه</p>
-                <fieldset className="grid gap-3 sm:grid-cols-2">
+                <div role="radiogroup" className="grid min-w-0 gap-2.5 sm:gap-3 sm:grid-cols-2">
                   <legend className="sr-only">انتخاب درگاه</legend>
                   {options.online.map((gateway) => (
                     <label
@@ -271,10 +271,10 @@ function CheckoutContent() {
                       </span>
                     </label>
                   ))}
-                </fieldset>
+                </div>
 
                 {selectedProvider === 'snapppay' && (
-                  <fieldset className="grid gap-3 sm:grid-cols-2">
+                  <div role="radiogroup" className="grid min-w-0 gap-2.5 sm:gap-3 sm:grid-cols-2">
                     <legend className="sr-only">تعداد اقساط</legend>
                     <InstallmentOption
                       checked={installments === 1}
@@ -288,15 +288,15 @@ function CheckoutContent() {
                       title="۴ قسط ماهانه"
                       detail={`هر قسط ${formatToman(Math.ceil(total / 4))}`}
                     />
-                  </fieldset>
+                  </div>
                 )}
               </div>
             )}
           </section>
         </div>
 
-        <aside className="h-fit space-y-6 rounded-3xl border border-ivory-300 bg-ivory-50 p-6 shadow-soft lg:sticky lg:top-28 md:p-8">
-          <h2 className="text-xl">خلاصه سفارش</h2>
+        <aside className="min-w-0 h-fit space-y-4 sm:space-y-6 rounded-2xl sm:rounded-3xl border border-ivory-300 bg-ivory-50 p-4 sm:p-6 shadow-soft lg:sticky lg:top-28 md:p-8">
+          <h2 className="text-base sm:text-xl">خلاصه سفارش</h2>
 
           <ul className="max-h-64 space-y-3 overflow-y-auto text-sm">
             {details.lines.map(({ line, product, variantLabel, quantity, lineTotal }) => (
@@ -386,7 +386,7 @@ function PaymentOptionCard({
 }) {
   return (
     <label
-      className={`rounded-2xl border p-5 transition ${
+      className={`rounded-xl sm:rounded-2xl border p-3.5 sm:p-5 transition ${
         disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
       } ${checked ? 'border-burgundy-700 bg-ivory-200/60 shadow-soft' : 'border-ivory-300 hover:border-gold-500'}`}
     >

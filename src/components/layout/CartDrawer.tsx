@@ -38,27 +38,27 @@ export default function CartDrawer({ open, onClose }: { open: boolean; onClose: 
         role="dialog"
         aria-modal="true"
         aria-label="سبد خرید"
-        className="absolute inset-y-0 left-0 flex w-full max-w-md animate-slide-in-left flex-col bg-ivory-50 shadow-lift"
+        className="absolute inset-y-0 left-0 flex h-dvh w-full max-w-full sm:max-w-md animate-slide-in-left flex-col bg-ivory-50 shadow-lift"
       >
-        <header className="flex items-center justify-between border-b border-ivory-300 px-6 py-5">
+        <header className="flex items-center justify-between border-b border-ivory-300 px-4 py-3.5 sm:px-6 sm:py-5">
           <h2 className="text-lg">سبد خرید</h2>
           <button type="button" onClick={onClose} aria-label="بستن" className="rounded-full p-2 hover:bg-ivory-200">
             <X className="h-5 w-5" />
           </button>
         </header>
 
-        <div className="px-6 pt-4">
+        <div className="px-4 pt-3 sm:px-6 sm:pt-4">
           <CartTabs active={tab} onChange={setTab} cartCount={cart.length} savedCount={savedForLater.length} />
         </div>
 
         {tab === 'saved' && (
-          <div role="tabpanel" id="cart-panel-saved" aria-labelledby="cart-tab-saved" className="flex-1 overflow-y-auto px-6 py-5">
+          <div role="tabpanel" id="cart-panel-saved" aria-labelledby="cart-tab-saved" className="flex-1 overflow-y-auto px-4 py-3.5 sm:px-6 sm:py-5">
             <SavedForLaterPanel onNavigate={onClose} />
           </div>
         )}
 
         {tab === 'cart' && (
-        <div role="tabpanel" id="cart-panel-cart" aria-labelledby="cart-tab-cart" className="flex-1 overflow-y-auto px-6 py-5">
+        <div role="tabpanel" id="cart-panel-cart" aria-labelledby="cart-tab-cart" className="flex-1 overflow-y-auto px-4 py-3.5 sm:px-6 sm:py-5">
           {details.loading && <SkeletonGrid count={2} />}
           {details.error && <ErrorState onRetry={details.retry} />}
           {!details.loading && !details.error && details.lines.length === 0 && (
@@ -132,7 +132,7 @@ export default function CartDrawer({ open, onClose }: { open: boolean; onClose: 
         )}
 
         {tab === 'saved' && (
-          <footer className="border-t border-ivory-300 px-6 py-5">
+          <footer className="border-t border-ivory-300 px-4 py-3.5 sm:px-6 sm:py-5">
             <button type="button" onClick={onClose} className="btn-outline w-full">
               ادامه خرید
             </button>
@@ -140,7 +140,7 @@ export default function CartDrawer({ open, onClose }: { open: boolean; onClose: 
         )}
 
         {tab === 'cart' && (
-        <footer className="space-y-4 border-t border-ivory-300 px-6 py-5">
+        <footer className="space-y-4 border-t border-ivory-300 px-4 py-3.5 sm:px-6 sm:py-5">
           {promo.discount > 0 && (
             <div className="flex items-center justify-between text-sm text-success-600">
               <span>تخفیف کد {promo.couponCode}</span>
