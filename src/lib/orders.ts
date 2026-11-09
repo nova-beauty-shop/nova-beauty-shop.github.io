@@ -117,14 +117,14 @@ function toDetail(row: Row): OrderDetail {
 export async function placeOrder(input: PlaceOrderInput): Promise<string> {
   const { data, error } = await supabase.rpc('place_order_v2', {
     p_address_id: input.addressId,
-    p_delivery_method: input.deliveryMethod,
+    p_delivery_method: input.deliveryMethod || "post",
     p_items: input.items.map((item) => ({
       product_id: item.productId,
       variant_id: item.variantId,
       quantity: item.quantity,
     })),
     p_idempotency_key: input.idempotencyKey,
-    p_delivery_slot: input.deliverySlot,
+    p_delivery_slot: input.deliverySlot ?? null,
     p_coupon_code: input.couponCode,
     p_free_sample_id: input.freeSampleId,
   });

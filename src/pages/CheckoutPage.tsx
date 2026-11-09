@@ -119,6 +119,8 @@ function CheckoutContent() {
     try {
       orderId = await placeOrder({
         addressId,
+        deliveryMethod: "post",
+        deliverySlot: null,
         items: details.lines.map(({ line, quantity }) => ({
           productId: line.productId,
           variantId: line.variantId,
@@ -127,7 +129,7 @@ function CheckoutContent() {
         
         couponCode: promo.appliedCoupon?.code ?? null,
         freeSampleId: promo.selectedSample?.id ?? null,
-        idempotencyKey,
+        idempotencyKey: crypto.randomUUID(),
       });
     } catch (error) {
       setSubmitError(orderErrorMessage(error instanceof OrderError ? error.code : ''));
