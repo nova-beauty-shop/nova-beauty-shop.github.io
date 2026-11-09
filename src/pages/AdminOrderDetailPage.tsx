@@ -172,7 +172,6 @@ function AdminOrderDetailContent({ orderId, access }: { orderId: string; access:
               </p>
 
               <div className="mt-6 grid gap-4 md:grid-cols-3">
-                {/* Step 1: Approve & Ready to ship */}
                 <div className={`flex flex-col justify-between rounded-2xl border p-5 ${
                   ["pending_review", "paid", "processing"].includes(order.data.status)
                     ? "border-burgundy-700 bg-ivory-200/60"
@@ -207,7 +206,6 @@ function AdminOrderDetailContent({ orderId, access }: { orderId: string; access:
                   </div>
                 </div>
 
-                {/* Step 2: Ship Order */}
                 <div className={`flex flex-col justify-between rounded-2xl border p-5 ${
                   order.data.status === "preparing"
                     ? "border-burgundy-700 bg-ivory-200/60"
@@ -252,7 +250,6 @@ function AdminOrderDetailContent({ orderId, access }: { orderId: string; access:
                   </div>
                 </div>
 
-                {/* Step 3: Final Delivered Tick */}
                 <div className={`flex flex-col justify-between rounded-2xl border p-5 ${
                   order.data.status === "shipped"
                     ? "border-burgundy-700 bg-ivory-200/60"
