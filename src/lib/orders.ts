@@ -115,7 +115,7 @@ function toDetail(row: Row): OrderDetail {
 }
 
 export async function placeOrder(input: PlaceOrderInput): Promise<string> {
-  const { data, error } = await supabase.rpc('place_order', {
+  const { data, error } = await supabase.rpc('place_order_v2', {
     p_address_id: input.addressId,
     p_delivery_method: input.deliveryMethod,
     p_items: input.items.map((item) => ({
