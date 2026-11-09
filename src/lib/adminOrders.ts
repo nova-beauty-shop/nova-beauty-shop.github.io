@@ -24,6 +24,8 @@ export interface AdminOrderRow {
   recipientName: string;
   phone: string;
   trackingCode: string | null;
+  itemsSummary: string;
+  hasPendingReceipt: boolean;
 }
 
 export interface AdminOrderQuery {
@@ -129,7 +131,7 @@ export async function fetchAdminOrderPage(query: AdminOrderQuery): Promise<Admin
   const from = Math.max(0, query.page) * ADMIN_ORDER_PAGE_SIZE;
   let request = supabase
     .from('orders')
-    .select('id, order_number, status, total_toman, created_at, recipient_name, phone, tracking_code', { count: 'exact' })
+    .select('id, order_number, status, total_toman, created_at, recipient_name, phone, tracking_code, items:order_items(product_name, quantity), payments:payment_receipts(status)', { count: 'exact' })
     .order('created_at', { ascending: false })
     .range(from, from + ADMIN_ORDER_PAGE_SIZE - 1);
 
@@ -155,7 +157,13 @@ export async function fetchAdminOrderPage(query: AdminOrderQuery): Promise<Admin
         createdAt: asString(row.created_at),
         recipientName: asString(row.recipient_name),
         phone: asString(row.phone),
-        trackingCode: typeof row.tracking_code === 'string' ? row.tracking_code : null,
+        trackingCode: typeof row.tracking_code === "string" ? row.tracking_code : null,
+        itemsSummary: Array.isArray(row.items)
+          ? (row.items as Row[]).map((i) => `${asString(i.product_name)} (×${asNumber(i.quantity)})`).join("، ")
+          : "",
+        hasPendingReceipt: Array.isArray(row.payments)
+          ? (row.payments as Row[]).some((p) => asString(p.status) === "pending")
+          : false,
       };
     }),
   };
@@ -255,3 +263,40 @@ export const NEXT_ORDER_STATUSES: Record<OrderStatus, OrderStatus[]> = {
   cancelled: [],
   refunded: [],
 };
+
+export async function fetchAdminPendingCounts(): Promise<{ pendingOrders: number; pendingReceipts: number }> {
+  const [ordersRes, receiptsRes] = await Promise.all([
+    supabase.from("orders").select("id", { count: "exact", head: true }).in("status", ["pending_review", "paid", "processing", "preparing"]),
+    supabase.from("payment_receipts").select("id", { count: "exact", head: true }).eq("status", "pending"),
+  ]);
+  return {
+    pendingOrders: ordersRes.count ?? 0,
+    pendingReceipts: receiptsRes.count ?? 0,
+  };
+}
+
+export async function advanceOrderStatusTo(
+  orderId: string,
+  currentStatus: OrderStatus,
+  targetStatus: OrderStatus,
+  note: string,
+  trackingCode: string,
+): Promise<void> {
+  const flow: OrderStatus[] = ["paid", "processing", "preparing", "shipped", "delivered"];
+  const startIdx = flow.indexOf(currentStatus);
+  const endIdx = flow.indexOf(targetStatus);
+  if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+    for (let i = startIdx + 1; i <= endIdx; i++) {
+      const step = flow[i];
+      const isLast = i === endIdx;
+      await updateOrderStatus(
+        orderId,
+        step,
+        isLast ? note : "",
+        step === "shipped" ? (trackingCode.trim() || "ارسال به مشتری") : "",
+      );
+    }
+  } else {
+    await updateOrderStatus(orderId, targetStatus, note, trackingCode);
+  }
+}

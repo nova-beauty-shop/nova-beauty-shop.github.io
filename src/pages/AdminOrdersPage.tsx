@@ -1,22 +1,22 @@
-import { useState, type FormEvent } from 'react';
-import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
-import AdminGate from '@/components/admin/AdminGate';
-import { AdminPageHeader } from '@/components/admin/AdminChrome';
-import Link from '@/components/common/Link';
-import { EmptyState, ErrorState, SkeletonGrid } from '@/components/common/StateViews';
-import { useAsync } from '@/hooks/useAsync';
-import { ADMIN_ORDER_PAGE_SIZE, ADMIN_ORDER_STATUSES, fetchAdminOrderPage } from '@/lib/adminOrders';
-import { formatDate, formatToman } from '@/lib/format';
-import { ORDER_STATUS_LABELS } from '@/lib/orderLabels';
-import type { OrderStatus } from '@/lib/orders';
+import { useState, type FormEvent } from "react";
+import { ChevronLeft, ChevronRight, Eye, Search } from "lucide-react";
+import AdminGate from "@/components/admin/AdminGate";
+import { AdminPageHeader } from "@/components/admin/AdminChrome";
+import Link from "@/components/common/Link";
+import { EmptyState, ErrorState, SkeletonGrid } from "@/components/common/StateViews";
+import { useAsync } from "@/hooks/useAsync";
+import { ADMIN_ORDER_PAGE_SIZE, ADMIN_ORDER_STATUSES, fetchAdminOrderPage } from "@/lib/adminOrders";
+import { formatDate, formatToman } from "@/lib/format";
+import { ORDER_STATUS_LABELS } from "@/lib/orderLabels";
+import type { OrderStatus } from "@/lib/orders";
 
 export default function AdminOrdersPage() {
   return <AdminGate>{() => <AdminOrdersContent />}</AdminGate>;
 }
 
 function AdminOrdersContent() {
-  const [draftSearch, setDraftSearch] = useState('');
-  const [search, setSearch] = useState('');
+  const [draftSearch, setDraftSearch] = useState("");
+  const [search, setSearch] = useState("");
   const [status, setStatus] = useState<OrderStatus | null>(null);
   const [page, setPage] = useState(0);
   const orders = useAsync(() => fetchAdminOrderPage({ search, status, page }), [search, status, page]);
@@ -35,7 +35,7 @@ function AdminOrdersContent() {
       <AdminPageHeader
         eyebrow="مدیریت سفارش‌ها"
         title="سفارش‌ها"
-        description="همه سفارش‌ها را جستجو و فیلتر کنید و برای مشاهده جزئیات، پرداخت، ارسال و وضعیت هر سفارش وارد شوید."
+        description="نام مشتری، اقلام سفارش داده‌شده و وضعیت فیش واریزی را یکجا ببینید و با یک کلیک سفارش را تأیید یا ارسال کنید."
       />
 
       <div className="mt-10 space-y-6">
@@ -51,7 +51,7 @@ function AdminOrdersContent() {
                 type="search"
                 value={draftSearch}
                 onChange={(event) => setDraftSearch(event.target.value)}
-                placeholder="شماره سفارش، نام گیرنده یا تلفن"
+                placeholder="شماره سفارش، نام مشتری یا تلفن"
                 className="field ps-11"
               />
             </div>
@@ -63,10 +63,10 @@ function AdminOrdersContent() {
           <label className="flex items-center gap-3 text-sm text-ink-700">
             وضعیت
             <select
-              value={status ?? ''}
+              value={status ?? ""}
               onChange={(event) => {
                 setPage(0);
-                setStatus(event.target.value === '' ? null : (event.target.value as OrderStatus));
+                setStatus(event.target.value === "" ? null : (event.target.value as OrderStatus));
               }}
               className="field h-11 w-auto min-w-[12rem]"
             >
@@ -91,36 +91,53 @@ function AdminOrdersContent() {
             <table className="min-w-full text-sm">
               <thead className="bg-ivory-200/70 text-start text-ink-700">
                 <tr>
-                  <th className="px-5 py-4 text-start font-medium">شماره سفارش</th>
-                  <th className="px-5 py-4 text-start font-medium">گیرنده</th>
-                  <th className="px-5 py-4 text-start font-medium">مبلغ</th>
-                  <th className="px-5 py-4 text-start font-medium">وضعیت</th>
-                  <th className="px-5 py-4 text-start font-medium">کد رهگیری</th>
-                  <th className="px-5 py-4 text-start font-medium">تاریخ ثبت</th>
+                  <th className="px-5 py-4 text-start font-medium">سفارش و تاریخ</th>
+                  <th className="px-5 py-4 text-start font-medium">مشتری</th>
+                  <th className="px-5 py-4 text-start font-medium">اقلام سفارش داده‌شده</th>
+                  <th className="px-5 py-4 text-start font-medium">مبلغ کل</th>
+                  <th className="px-5 py-4 text-start font-medium">وضعیت سفارش و فیش</th>
+                  <th className="px-5 py-4 text-end font-medium">مدیریت</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-ivory-300">
                 {orders.data.rows.map((row) => (
                   <tr key={row.id} className="transition hover:bg-ivory-200/50">
                     <td className="px-5 py-4">
-                      <Link to={`/admin/orders/${row.id}`} className="font-medium text-burgundy-700 underline-offset-4 hover:underline" dir="ltr">
+                      <Link to={`/admin/orders/${row.id}`} className="font-bold text-burgundy-700 underline-offset-4 hover:underline" dir="ltr">
                         {row.orderNumber}
                       </Link>
+                      <p className="mt-1 text-xs text-ink-500">{formatDate(row.createdAt)}</p>
                     </td>
                     <td className="px-5 py-4">
-                      <p className="font-medium text-ink-900">{row.recipientName}</p>
-                      <p className="text-xs text-ink-500" dir="ltr">
+                      <p className="font-bold text-ink-900">{row.recipientName}</p>
+                      <p className="mt-0.5 text-xs text-ink-500" dir="ltr">
                         {row.phone}
                       </p>
                     </td>
-                    <td className="px-5 py-4 font-medium">{formatToman(row.totalToman)}</td>
+                    <td className="max-w-xs px-5 py-4">
+                      <p className="line-clamp-2 text-xs leading-relaxed text-ink-800">
+                        {row.itemsSummary || "—"}
+                      </p>
+                    </td>
+                    <td className="px-5 py-4 font-bold text-ink-900">{formatToman(row.totalToman)}</td>
                     <td className="px-5 py-4">
-                      <span className="rounded-full bg-ivory-200 px-3 py-1 text-xs text-ink-700">{ORDER_STATUS_LABELS[row.status]}</span>
+                      <div className="flex flex-col items-start gap-1.5">
+                        <span className="rounded-full bg-ivory-200 px-3 py-1 text-xs font-medium text-ink-800">
+                          {ORDER_STATUS_LABELS[row.status]}
+                        </span>
+                        {row.hasPendingReceipt && (
+                          <span className="rounded-full bg-gold-500/25 px-2.5 py-0.5 text-[11px] font-bold text-burgundy-900">
+                            فیش جدید در انتظار تأیید
+                          </span>
+                        )}
+                      </div>
                     </td>
-                    <td className="px-5 py-4 text-ink-500" dir="ltr">
-                      {row.trackingCode ?? '—'}
+                    <td className="px-5 py-4 text-end">
+                      <Link to={`/admin/orders/${row.id}`} className="btn-primary h-9 px-4 text-xs">
+                        <Eye className="h-3.5 w-3.5" />
+                        بررسی و تأیید
+                      </Link>
                     </td>
-                    <td className="px-5 py-4 text-ink-500">{formatDate(row.createdAt)}</td>
                   </tr>
                 ))}
               </tbody>
