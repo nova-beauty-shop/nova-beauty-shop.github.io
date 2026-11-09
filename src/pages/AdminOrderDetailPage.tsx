@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { ArrowRight, CheckCircle, CheckCircle2, Clock, PackageCheck, Printer, XCircle } from "lucide-react";
+import { ArrowRight, CheckCircle, CheckCircle2, Clock, PackageCheck, Printer, Send, Truck, XCircle } from "lucide-react";
 import AdminGate from "@/components/admin/AdminGate";
 import { AdminPageHeader } from "@/components/admin/AdminChrome";
 import ReceiptPreview from "@/components/admin/payments/ReceiptPreview";
@@ -33,7 +33,7 @@ function AdminOrderDetailContent({ orderId, access }: { orderId: string; access:
   const [rejectingReceiptId, setRejectingReceiptId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
 
-  async function handleApproveAndPrepare(receiptId?: string) {
+  async function handleStep1Approve(receiptId?: string) {
     if (!order.data || busy) return;
     setBusy(true);
     setActionError(null);
@@ -53,7 +53,7 @@ function AdminOrderDetailContent({ orderId, access }: { orderId: string; access:
           "",
         );
       }
-      setActionMessage("✓ فیش تأیید شد و پیام «آماده ارسال» برای مشتری ثبت گردید. سفارش در حالت معلق ارسال قرار گرفت.");
+      setActionMessage("✓ گام ۱ انجام شد: فیش تأیید گردید و پیام «آماده ارسال» برای مشتری ثبت شد.");
       order.retry();
     } catch {
       setActionError("خطا در تأیید سفارش. لطفاً دوباره تلاش کنید.");
@@ -84,21 +84,44 @@ function AdminOrderDetailContent({ orderId, access }: { orderId: string; access:
     }
   }
 
-  async function handleDeliverOrder() {
+  async function handleStep2Ship() {
     if (!order.data || busy) return;
     setBusy(true);
     setActionError(null);
     setActionMessage(null);
     try {
-      const code = trackingInput.trim() || order.data.trackingCode || "ارسال به مشتری";
+      const code = trackingInput.trim() || order.data.trackingCode || "ارسال با پست / پیک";
+      await advanceOrderStatusTo(
+        order.data.id,
+        order.data.status,
+        "shipped",
+        "بسته شما تحویل پست/پیک داده شد و ارسال گردید.",
+        code,
+      );
+      setActionMessage("✓ گام ۲ انجام شد: وضعیت سفارش به «ارسال شده» تغییر یافت.");
+      order.retry();
+    } catch {
+      setActionError("خطا در ثبت ارسال سفارش.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleStep3Deliver() {
+    if (!order.data || busy) return;
+    setBusy(true);
+    setActionError(null);
+    setActionMessage(null);
+    try {
+      const code = trackingInput.trim() || order.data.trackingCode || "تحویل شده";
       await advanceOrderStatusTo(
         order.data.id,
         order.data.status,
         "delivered",
-        "سفارش شما ارسال شد و تحویل گردید.",
+        "سفارش با موفقیت تحویل مشتری گردید.",
         code,
       );
-      setActionMessage("✅ تیک نهایی تحویل سفارش با موفقیت ثبت شد.");
+      setActionMessage("✅ گام ۳ انجام شد: تیک نهایی تحویل سفارش با موفقیت ثبت شد.");
       order.retry();
     } catch {
       setActionError("خطا در ثبت تحویل نهایی.");
@@ -107,8 +130,9 @@ function AdminOrderDetailContent({ orderId, access }: { orderId: string; access:
     }
   }
 
-  const isApprovedPendingSend = order.data ? ["paid", "processing", "preparing", "shipped"].includes(order.data.status) : false;
-  const isCompleted = order.data?.status === "delivered";
+  const isStep1Done = order.data ? ["paid", "processing", "preparing", "shipped", "delivered"].includes(order.data.status) : false;
+  const isStep2Done = order.data ? ["shipped", "delivered"].includes(order.data.status) : false;
+  const isStep3Done = order.data?.status === "delivered";
 
   return (
     <div className="container-nova py-12 md:py-16">
@@ -168,7 +192,7 @@ function AdminOrderDetailContent({ orderId, access }: { orderId: string; access:
                 </div>
               </Card>
 
-              <Card title="۲. تصویر فیش واریزی و دکمه تأیید">
+              <Card title="۲. تصویر فیش واریزی و دکمه تأیید (گام ۱)">
                 {order.data.payments.length === 0 ? (
                   <p className="rounded-2xl bg-ivory-200/50 p-4 text-sm text-ink-600">
                     مشتری هنوز تصویر فیش واریزی برای این سفارش آپلود نکرده است.
@@ -184,13 +208,13 @@ function AdminOrderDetailContent({ orderId, access }: { orderId: string; access:
                             </div>
                           )}
 
-                          {/* Approve/Reject button directly beneath the receipt image */}
+                          {/* Step 1 Approve/Reject button directly beneath the receipt image */}
                           {canEdit && (
                             <div>
-                              {payment.status === "approved" || isApprovedPendingSend || isCompleted ? (
+                              {payment.status === "approved" || isStep1Done ? (
                                 <div className="flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border border-success-600/30 bg-success-100 px-3 text-xs font-bold text-success-600">
                                   <CheckCircle className="h-4 w-4 shrink-0" />
-                                  <span>✓ فیش تأیید شد</span>
+                                  <span>✓ گام ۱: فیش تأیید شد</span>
                                 </div>
                               ) : payment.status === "pending" ? (
                                 <div className="space-y-2">
@@ -198,11 +222,11 @@ function AdminOrderDetailContent({ orderId, access }: { orderId: string; access:
                                     <button
                                       type="button"
                                       disabled={busy}
-                                      onClick={() => void handleApproveAndPrepare(payment.id)}
+                                      onClick={() => void handleStep1Approve(payment.id)}
                                       className="btn-primary h-10 flex-1 px-3 text-xs"
                                     >
                                       <CheckCircle className="h-4 w-4 shrink-0" />
-                                      {busy ? "در حال ثبت..." : "تأیید فیش و سفارش"}
+                                      {busy ? "در حال ثبت..." : "گام ۱: تأیید فیش و سفارش"}
                                     </button>
                                     <button
                                       type="button"
@@ -292,43 +316,65 @@ function AdminOrderDetailContent({ orderId, access }: { orderId: string; access:
             </div>
 
             <aside className="space-y-8">
-              <Card title="وضعیت ارسال و تیک نهایی">
-                {isCompleted ? (
-                  <div className="flex items-center gap-2 rounded-2xl bg-success-100 p-4 text-xs font-bold text-success-600">
-                    <CheckCircle2 className="h-5 w-5 shrink-0" />
-                    <span>✅ این سفارش ارسال و تحویل شده است.</span>
-                  </div>
-                ) : isApprovedPendingSend ? (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 rounded-2xl bg-gold-500/25 p-3.5 text-xs font-bold text-burgundy-900">
-                      <Clock className="h-5 w-5 shrink-0" />
-                      <span>⏰ سفارش تأیید شده و معلق ارسال است.</span>
-                    </div>
-                    <input
-                      type="text"
-                      dir="ltr"
-                      placeholder="کد رهگیری پستی (اختیاری)"
-                      value={trackingInput}
-                      onChange={(e) => setTrackingInput(e.target.value)}
-                      className="field text-xs"
-                    />
-                    {canEdit && (
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => void handleDeliverOrder()}
-                        className="btn-primary w-full text-xs"
-                      >
-                        <PackageCheck className="h-4 w-4" />
-                        {busy ? "در حال ثبت..." : "زدن تیک آخر (ارسال و تحویل شد ✓)"}
-                      </button>
+              <Card title="مراحل ارسال و تحویل (گام ۲ و ۳)">
+                <div className="space-y-5">
+                  {/* Step 2 Box */}
+                  <div className="space-y-2.5 border-b border-ivory-300 pb-5">
+                    <p className="text-xs font-bold text-burgundy-700">گام ۲: ارسال کالا به مشتری</p>
+                    {isStep2Done ? (
+                      <div className="flex items-center gap-2 rounded-2xl bg-success-100 p-3.5 text-xs font-bold text-success-600">
+                        <Truck className="h-4 w-4 shrink-0" />
+                        <span>✓ کالا ارسال شده است</span>
+                      </div>
+                    ) : (
+                      <>
+                        <input
+                          type="text"
+                          dir="ltr"
+                          placeholder="کد رهگیری پستی (اختیاری)"
+                          value={trackingInput}
+                          onChange={(e) => setTrackingInput(e.target.value)}
+                          disabled={!isStep1Done}
+                          className="field text-xs disabled:opacity-50"
+                        />
+                        {canEdit && (
+                          <button
+                            type="button"
+                            disabled={busy || !isStep1Done}
+                            onClick={() => void handleStep2Ship()}
+                            className="btn-primary w-full text-xs"
+                          >
+                            <Send className="h-4 w-4" />
+                            {busy ? "در حال ثبت..." : "گام ۲: ثبت ارسال کالا"}
+                          </button>
+                        )}
+                      </>
                     )}
                   </div>
-                ) : (
-                  <p className="rounded-2xl bg-ivory-200/70 p-4 text-xs leading-relaxed text-ink-600">
-                    ⏳ ابتدا فیش واریزی را با دکمه زیر عکس فیش تأیید کنید تا بخش ارسال و تیک نهایی فعال شود.
-                  </p>
-                )}
+
+                  {/* Step 3 Box */}
+                  <div className="space-y-2.5">
+                    <p className="text-xs font-bold text-burgundy-700">گام ۳: تیک نهایی تحویل</p>
+                    {isStep3Done ? (
+                      <div className="flex items-center gap-2 rounded-2xl bg-success-100 p-3.5 text-xs font-bold text-success-600">
+                        <CheckCircle2 className="h-4 w-4 shrink-0" />
+                        <span>✅ تیک آخر خورده (تحویل داده شد)</span>
+                      </div>
+                    ) : (
+                      canEdit && (
+                        <button
+                          type="button"
+                          disabled={busy || !isStep2Done}
+                          onClick={() => void handleStep3Deliver()}
+                          className="btn-primary w-full text-xs"
+                        >
+                          <PackageCheck className="h-4 w-4" />
+                          {busy ? "در حال ثبت..." : "گام ۳: زدن تیک آخر (تحویل داده شد ✓)"}
+                        </button>
+                      )
+                    )}
+                  </div>
+                </div>
               </Card>
 
               <Card title="چاپ فاکتور">

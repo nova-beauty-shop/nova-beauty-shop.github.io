@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { CheckCircle, CheckCircle2, ChevronLeft, ChevronRight, Clock, Eye, PackageCheck, Search, XCircle } from "lucide-react";
+import { CheckCircle, CheckCircle2, ChevronLeft, ChevronRight, Clock, Eye, PackageCheck, Search, Send, Truck, XCircle } from "lucide-react";
 import AdminGate from "@/components/admin/AdminGate";
 import { AdminPageHeader } from "@/components/admin/AdminChrome";
 import ReceiptPreview from "@/components/admin/payments/ReceiptPreview";
@@ -60,9 +60,9 @@ function AdminOrdersContent() {
   return (
     <div className="container-nova py-12 md:py-16">
       <AdminPageHeader
-        eyebrow="پنل ساده و یکپارچه"
-        title="مدیریت سفارش‌ها"
-        description="زیر عکس هر فیش دکمه «تأیید فیش» را بزنید تا سفارش وارد حالت «معلق ارسال ⏰» شود؛ سپس هر زمان بسته را فرستادید، تیک آخر پایین کارت را بزنید."
+        eyebrow="مدیریت مرحله‌به‌مرحله سفارش‌ها"
+        title="سفارش‌های مشتریان"
+        description="گام ۱: تأیید فیش (زیر عکس فیش) ← گام ۲: ثبت ارسال کالا (پایین کارت) ← گام ۳: زدن تیک آخر تحویل داده شد."
       />
 
       <div className="mt-8 space-y-6">
@@ -97,7 +97,7 @@ function AdminOrdersContent() {
             <div className="flex items-center gap-2.5">
               <Clock className="h-5 w-5 shrink-0" />
               <div>
-                <p className="text-xs opacity-80">گام اول</p>
+                <p className="text-xs opacity-80">گام ۱</p>
                 <p className="mt-0.5 text-sm font-bold">منتظر تأیید فیش</p>
               </div>
             </div>
@@ -118,8 +118,8 @@ function AdminOrdersContent() {
             <div className="flex items-center gap-2.5">
               <Clock className="h-5 w-5 shrink-0" />
               <div>
-                <p className="text-xs opacity-80">تأیید شده (معلق ارسال)</p>
-                <p className="mt-0.5 text-sm font-bold">منتظر تیک آخر ارسال</p>
+                <p className="text-xs opacity-80">گام ۲ و ۳ (معلق)</p>
+                <p className="mt-0.5 text-sm font-bold">منتظر ارسال / تیک تحویل</p>
               </div>
             </div>
             <span className="rounded-full bg-burgundy-700 px-3 py-1 text-sm font-bold text-ivory-50">
@@ -140,7 +140,7 @@ function AdminOrdersContent() {
               <CheckCircle2 className="h-5 w-5 shrink-0" />
               <div>
                 <p className="text-xs opacity-80">تکمیل شده</p>
-                <p className="mt-0.5 text-sm font-bold">ارسال و تحویل شده ✓</p>
+                <p className="mt-0.5 text-sm font-bold">تحویل داده شده ✓</p>
               </div>
             </div>
             <span className="rounded-full bg-success-100 px-3 py-1 text-sm font-bold text-success-600">
@@ -221,10 +221,11 @@ function AdminOrderCard({ row, onUpdated }: { row: AdminOrderRow; onUpdated: () 
   const latestReceipt = row.payments[0] ?? null;
   const pendingReceipt = row.payments.find((p) => p.status === "pending") ?? null;
 
-  const isApprovedPendingSend = ["paid", "processing", "preparing", "shipped"].includes(row.status);
-  const isCompleted = row.status === "delivered";
+  const isStep1Done = ["paid", "processing", "preparing", "shipped", "delivered"].includes(row.status);
+  const isStep2Done = ["shipped", "delivered"].includes(row.status);
+  const isStep3Done = row.status === "delivered";
 
-  async function handleApprove() {
+  async function handleStep1Approve() {
     if (busy) return;
     setBusy(true);
     setErr(null);
@@ -244,7 +245,7 @@ function AdminOrderCard({ row, onUpdated }: { row: AdminOrderRow; onUpdated: () 
           ""
         );
       }
-      setNotice("✓ فیش تأیید شد و پیام «آماده ارسال» برای مشتری رفت. سفارش در حالت «معلق ارسال ⏰» قرار گرفت.");
+      setNotice("✓ گام ۱ انجام شد: فیش تأیید گردید و پیام «ثبت شد و آماده ارسال است» برای مشتری رفت.");
       onUpdated();
     } catch {
       setErr("برای تأیید سفارش، ابتدا باید مشتری فیش واریزی را ارسال کرده باشد.");
@@ -271,24 +272,47 @@ function AdminOrderCard({ row, onUpdated }: { row: AdminOrderRow; onUpdated: () 
     }
   }
 
-  async function handleFinalTick() {
+  async function handleStep2Ship() {
     if (busy) return;
     setBusy(true);
     setErr(null);
     setNotice(null);
     try {
-      const code = trackingInput.trim() || row.trackingCode || "ارسال به مشتری";
+      const code = trackingInput.trim() || row.trackingCode || "ارسال با پست / پیک";
+      await advanceOrderStatusTo(
+        row.id,
+        row.status,
+        "shipped",
+        "بسته شما تحویل پست/پیک داده شد و ارسال گردید.",
+        code
+      );
+      setNotice("✓ گام ۲ انجام شد: وضعیت سفارش به «ارسال شده» تغییر یافت. پس از رسیدن بسته به مشتری، تیک آخر (گام ۳) را بزنید.");
+      onUpdated();
+    } catch {
+      setErr("خطا در ثبت ارسال کالا. لطفاً دوباره تلاش کنید.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleStep3Deliver() {
+    if (busy) return;
+    setBusy(true);
+    setErr(null);
+    setNotice(null);
+    try {
+      const code = trackingInput.trim() || row.trackingCode || "تحویل شده";
       await advanceOrderStatusTo(
         row.id,
         row.status,
         "delivered",
-        "سفارش شما ارسال شد و تحویل گردید.",
+        "سفارش با موفقیت تحویل مشتری گردید.",
         code
       );
-      setNotice("✅ تیک نهایی زده شد! سفارش به وضعیت «تکمیل و ارسال شده» تغییر یافت.");
+      setNotice("✅ گام ۳ انجام شد: تیک نهایی تحویل داده شد ثبت گردید!");
       onUpdated();
     } catch {
-      setErr("خطا در ثبت تیک نهایی. لطفاً دوباره تلاش کنید.");
+      setErr("خطا در ثبت تیک تحویل نهایی.");
     } finally {
       setBusy(false);
     }
@@ -297,30 +321,45 @@ function AdminOrderCard({ row, onUpdated }: { row: AdminOrderRow; onUpdated: () 
   return (
     <article
       className={`rounded-3xl border-2 p-6 shadow-soft transition md:p-8 ${
-        isCompleted
+        isStep3Done
           ? "border-success-600/40 bg-ivory-50/70"
-          : isApprovedPendingSend
+          : isStep1Done
           ? "border-gold-500 bg-ivory-50"
           : "border-ivory-300 bg-ivory-50"
       }`}
     >
-      {/* Top Status Strip */}
+      {/* Top Status Strip with Pending Clock Indicators */}
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-ivory-200/70 px-4 py-3">
         <div className="flex flex-wrap items-center gap-2.5">
-          {isCompleted ? (
+          {isStep3Done ? (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-success-100 px-3.5 py-1.5 text-xs font-bold text-success-600">
               <CheckCircle2 className="h-4 w-4" />
-              ✅ تکمیل شده (تأیید و ارسال شد)
+              ✅ تکمیل نهایی (تأیید فیش + ارسال کالا + تحویل داده شد)
             </span>
-          ) : isApprovedPendingSend ? (
+          ) : isStep2Done ? (
             <>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-success-100 px-3 py-1 text-xs font-bold text-success-600">
                 <CheckCircle className="h-4 w-4" />
-                ✓ فیش تأیید شده
+                ✓ فیش تأیید شد
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-success-100 px-3 py-1 text-xs font-bold text-success-600">
+                <Truck className="h-4 w-4" />
+                ✓ کالا ارسال شد
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-gold-500/30 px-3.5 py-1 text-xs font-bold text-burgundy-900">
                 <Clock className="h-4 w-4" />
-                ⏰ معلق ارسال — یادتان نرود پس از ارسال، تیک آخر پایین کارت را بزنید!
+                ⏰ معلق تحویل — یادتان نرود پس از تحویل، تیک آخر (گام ۳) را بزنید!
+              </span>
+            </>
+          ) : isStep1Done ? (
+            <>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-success-100 px-3 py-1 text-xs font-bold text-success-600">
+                <CheckCircle className="h-4 w-4" />
+                ✓ فیش تأیید شد (آماده ارسال)
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-gold-500/30 px-3.5 py-1 text-xs font-bold text-burgundy-900">
+                <Clock className="h-4 w-4" />
+                ⏰ معلق ارسال — منتظر زدن دکمه «ارسال کالا» و سپس «تیک آخر تحویل»
               </span>
             </>
           ) : (
@@ -354,7 +393,7 @@ function AdminOrderCard({ row, onUpdated }: { row: AdminOrderRow; onUpdated: () 
         </div>
       )}
 
-      {/* 3 Columns: 1. Customer, 2. Items, 3. Receipt Image + Approve Button RIGHT UNDER THE IMAGE */}
+      {/* 3 Columns: 1. Customer, 2. Items, 3. Receipt Image + Step 1 Approve Button RIGHT UNDER THE IMAGE */}
       <div className="grid gap-5 lg:grid-cols-3">
         <div className="rounded-2xl border border-ivory-300 bg-ivory-100/60 p-4">
           <h3 className="text-xs font-bold text-burgundy-700">۱. نام مشتری و آدرس</h3>
@@ -392,10 +431,10 @@ function AdminOrderCard({ row, onUpdated }: { row: AdminOrderRow; onUpdated: () 
           </ul>
         </div>
 
-        {/* Column 3: Receipt Image + Direct Approve/Reject Buttons Underneath */}
+        {/* Column 3: Receipt Image + Step 1 Button Directly Underneath */}
         <div className="flex flex-col justify-between rounded-2xl border border-ivory-300 bg-ivory-100/60 p-4">
           <div>
-            <h3 className="text-xs font-bold text-burgundy-700">۳. عکس فیش واریزی و تأیید</h3>
+            <h3 className="text-xs font-bold text-burgundy-700">۳. عکس فیش واریزی (گام ۱)</h3>
             {!latestReceipt ? (
               <p className="mt-3 rounded-xl bg-ivory-200/70 p-3 text-xs text-ink-500">
                 مشتری هنوز عکس فیش را نفرستاده است.
@@ -415,23 +454,23 @@ function AdminOrderCard({ row, onUpdated }: { row: AdminOrderRow; onUpdated: () 
             )}
           </div>
 
-          {/* Direct Approve Button right below the receipt photo */}
+          {/* Step 1 Button directly under receipt photo */}
           <div className="mt-4 border-t border-ivory-300 pt-3">
-            {isApprovedPendingSend || isCompleted ? (
+            {isStep1Done ? (
               <div className="flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border border-success-600/30 bg-success-100 px-3 text-xs font-bold text-success-600">
                 <CheckCircle className="h-4 w-4 shrink-0" />
-                <span>✓ فیش تأیید شد (پیام آماده ارسال رفت)</span>
+                <span>✓ گام ۱: فیش تأیید شد (آماده ارسال)</span>
               </div>
             ) : (
               <div className="flex gap-2">
                 <button
                   type="button"
                   disabled={busy || (!pendingReceipt && !["paid", "processing"].includes(row.status))}
-                  onClick={() => void handleApprove()}
+                  onClick={() => void handleStep1Approve()}
                   className="btn-primary h-10 flex-1 px-3 text-xs"
                 >
                   <CheckCircle className="h-4 w-4 shrink-0" />
-                  {busy ? "در حال ثبت..." : "تأیید فیش و سفارش"}
+                  {busy ? "در حال ثبت..." : "گام ۱: تأیید فیش و سفارش"}
                 </button>
                 {pendingReceipt && (
                   <button
@@ -450,25 +489,14 @@ function AdminOrderCard({ row, onUpdated }: { row: AdminOrderRow; onUpdated: () 
         </div>
       </div>
 
-      {/* Bottom Bar: ONLY Final Shipping Tick (No duplicate receipt buttons) */}
-      <div className="mt-5 flex flex-col items-stretch justify-between gap-3 border-t border-ivory-300 pt-4 sm:flex-row sm:items-center">
-        <div className="text-xs text-ink-700">
-          {isCompleted ? (
-            <span className="font-bold text-success-600">این سفارش به طور کامل ارسال و تحویل شده است.</span>
-          ) : isApprovedPendingSend ? (
-            <span className="font-bold text-burgundy-800">
-              ⏰ سفارش تأیید شده و منتظر ارسال است؛ پس از تحویل به پست/پیک، تیک آخر را بزنید:
-            </span>
-          ) : (
-            <span className="text-ink-500">ابتدا دکمه «تأیید فیش و سفارش» را در کادر زیر عکس فیش بزنید تا دکمه تیک نهایی فعال شود.</span>
-          )}
-        </div>
-
+      {/* Bottom Bar: Step 2 (Ship Order) and Step 3 (Final Delivered Tick) COMPLETELY SEPARATE */}
+      <div className="mt-5 grid gap-4 border-t border-ivory-300 pt-5 md:grid-cols-2">
+        {/* Step 2: Ship Item */}
         <div className="flex items-center gap-2">
-          {isCompleted ? (
-            <div className="flex h-11 items-center justify-center gap-2 rounded-2xl border border-success-600/30 bg-success-100 px-5 text-xs font-bold text-success-600">
-              <PackageCheck className="h-4 w-4 shrink-0" />
-              <span>✅ تیک آخر خورده (ارسال و تحویل شد)</span>
+          {isStep2Done ? (
+            <div className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-success-600/30 bg-success-100 px-4 text-xs font-bold text-success-600">
+              <Truck className="h-4 w-4 shrink-0" />
+              <span>✓ گام ۲: کالا ارسال شده است {row.trackingCode ? `(کد: ${row.trackingCode})` : ""}</span>
             </div>
           ) : (
             <>
@@ -478,19 +506,39 @@ function AdminOrderCard({ row, onUpdated }: { row: AdminOrderRow; onUpdated: () 
                 placeholder="کد رهگیری پستی (اختیاری)"
                 value={trackingInput}
                 onChange={(e) => setTrackingInput(e.target.value)}
-                disabled={!isApprovedPendingSend}
-                className="field h-11 w-44 text-xs disabled:opacity-50"
+                disabled={!isStep1Done}
+                className="field h-11 w-40 text-xs disabled:opacity-50"
               />
               <button
                 type="button"
-                disabled={busy || !isApprovedPendingSend}
-                onClick={() => void handleFinalTick()}
-                className="btn-primary h-11 px-5 text-xs"
+                disabled={busy || !isStep1Done}
+                onClick={() => void handleStep2Ship()}
+                className="btn-primary h-11 flex-1 text-xs"
               >
-                <PackageCheck className="h-4 w-4 shrink-0" />
-                {busy ? "در حال ثبت..." : "زدن تیک آخر (ارسال شد ✓)"}
+                <Send className="h-4 w-4 shrink-0" />
+                {busy ? "در حال ثبت..." : "گام ۲: ثبت ارسال کالا"}
               </button>
             </>
+          )}
+        </div>
+
+        {/* Step 3: Final Delivered Tick */}
+        <div>
+          {isStep3Done ? (
+            <div className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-success-600/30 bg-success-100 px-4 text-xs font-bold text-success-600">
+              <PackageCheck className="h-4 w-4 shrink-0" />
+              <span>✅ گام ۳: تیک آخر خورده (تحویل داده شد)</span>
+            </div>
+          ) : (
+            <button
+              type="button"
+              disabled={busy || !isStep2Done}
+              onClick={() => void handleStep3Deliver()}
+              className="btn-primary h-11 w-full text-xs"
+            >
+              <PackageCheck className="h-4 w-4 shrink-0" />
+              {busy ? "در حال ثبت..." : "گام ۳: زدن تیک آخر (تحویل داده شد ✓)"}
+            </button>
           )}
         </div>
       </div>
