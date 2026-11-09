@@ -15,30 +15,6 @@ export const ADMIN_ORDER_STATUSES: OrderStatus[] = [
   "refunded",
 ];
 
-export interface AdminOrderRow {
-  id: string;
-  orderNumber: string;
-  status: OrderStatus;
-  totalToman: number;
-  createdAt: string;
-  recipientName: string;
-  phone: string;
-  trackingCode: string | null;
-  itemsSummary: string;
-  hasPendingReceipt: boolean;
-}
-
-export interface AdminOrderQuery {
-  search: string;
-  status: OrderStatus | null;
-  page: number;
-}
-
-export interface AdminOrderPage {
-  rows: AdminOrderRow[];
-  total: number;
-}
-
 export interface AdminOrderItem {
   id: string;
   productName: string;
@@ -69,6 +45,34 @@ export interface AdminOrderEvent {
   toStatus: OrderStatus;
   note: string | null;
   createdAt: string;
+}
+
+export interface AdminOrderRow {
+  id: string;
+  orderNumber: string;
+  status: OrderStatus;
+  totalToman: number;
+  createdAt: string;
+  recipientName: string;
+  phone: string;
+  province: string;
+  city: string;
+  street: string;
+  postalCode: string;
+  trackingCode: string | null;
+  items: AdminOrderItem[];
+  payments: AdminOrderPayment[];
+}
+
+export interface AdminOrderQuery {
+  search: string;
+  status: OrderStatus | null;
+  page: number;
+}
+
+export interface AdminOrderPage {
+  rows: AdminOrderRow[];
+  total: number;
 }
 
 export interface AdminOrderDetail {
@@ -127,11 +131,44 @@ function sanitizeSearch(value: string): string {
   return value.replace(/[%_,()*\"']/g, "").trim().slice(0, 60);
 }
 
+function mapItems(rawItems: unknown): AdminOrderItem[] {
+  if (!Array.isArray(rawItems)) return [];
+  return (rawItems as Row[]).map((item) => ({
+    id: asString(item.id),
+    productName: asString(item.product_name),
+    brand: asString(item.brand),
+    variantLabel: typeof item.variant_label === "string" ? item.variant_label : null,
+    unitPriceToman: asNumber(item.unit_price_toman),
+    quantity: asNumber(item.quantity),
+    lineTotalToman: asNumber(item.line_total_toman),
+  }));
+}
+
+function mapPayments(rawPayments: unknown): AdminOrderPayment[] {
+  if (!Array.isArray(rawPayments)) return [];
+  return (rawPayments as Row[]).map((payment) => ({
+    id: asString(payment.id),
+    status: asString(payment.status) as AdminOrderPayment["status"],
+    amountToman: asNumber(payment.amount_toman),
+    reviewNote: typeof payment.review_note === "string" ? payment.review_note : null,
+    createdAt: asString(payment.created_at),
+    reviewedAt: typeof payment.reviewed_at === "string" ? payment.reviewed_at : null,
+    storagePath: asString(payment.storage_path),
+    payerName: typeof payment.payer_name === "string" ? payment.payer_name : null,
+    cardLast4: typeof payment.card_last4 === "string" ? payment.card_last4 : null,
+    bankName: typeof payment.bank_name === "string" ? payment.bank_name : null,
+    trackingCode: typeof payment.tracking_code === "string" ? payment.tracking_code : null,
+  }));
+}
+
 export async function fetchAdminOrderPage(query: AdminOrderQuery): Promise<AdminOrderPage> {
   const from = Math.max(0, query.page) * ADMIN_ORDER_PAGE_SIZE;
   let request = supabase
     .from("orders")
-    .select("id, order_number, status, total_toman, created_at, recipient_name, phone, tracking_code, items:order_items(product_name, quantity), payments:payment_receipts(status)", { count: "exact" })
+    .select(
+      "id, order_number, status, total_toman, created_at, recipient_name, phone, province, city, street, postal_code, tracking_code, items:order_items(id, product_name, brand, variant_label, unit_price_toman, quantity, line_total_toman), payments:payment_receipts(id, status, amount_toman, review_note, created_at, reviewed_at, storage_path, payer_name, card_last4, bank_name, tracking_code)",
+      { count: "exact" }
+    )
     .order("created_at", { ascending: false })
     .range(from, from + ADMIN_ORDER_PAGE_SIZE - 1);
 
@@ -157,13 +194,13 @@ export async function fetchAdminOrderPage(query: AdminOrderQuery): Promise<Admin
         createdAt: asString(row.created_at),
         recipientName: asString(row.recipient_name),
         phone: asString(row.phone),
+        province: asString(row.province),
+        city: asString(row.city),
+        street: asString(row.street),
+        postalCode: asString(row.postal_code),
         trackingCode: typeof row.tracking_code === "string" ? row.tracking_code : null,
-        itemsSummary: Array.isArray(row.items)
-          ? (row.items as Row[]).map((i) => `${asString(i.product_name)} (×${asNumber(i.quantity)})`).join("، ")
-          : "",
-        hasPendingReceipt: Array.isArray(row.payments)
-          ? (row.payments as Row[]).some((p) => asString(p.status) === "pending")
-          : false,
+        items: mapItems(row.items),
+        payments: mapPayments(row.payments),
       };
     }),
   };
@@ -180,9 +217,6 @@ export async function fetchAdminOrderDetail(id: string): Promise<AdminOrderDetai
   if (error) throw error;
   if (!data) return null;
   const row = data as unknown as Row;
-
-  const items = Array.isArray(row.items) ? (row.items as Row[]) : [];
-  const payments = Array.isArray(row.payments) ? (row.payments as Row[]) : [];
   const events = Array.isArray(row.events) ? (row.events as Row[]) : [];
 
   return {
@@ -203,28 +237,8 @@ export async function fetchAdminOrderDetail(id: string): Promise<AdminOrderDetai
     postalCode: asString(row.postal_code),
     trackingCode: typeof row.tracking_code === "string" ? row.tracking_code : null,
     deliveryNote: typeof row.delivery_note === "string" ? row.delivery_note : null,
-    items: items.map((item) => ({
-      id: asString(item.id),
-      productName: asString(item.product_name),
-      brand: asString(item.brand),
-      variantLabel: typeof item.variant_label === "string" ? item.variant_label : null,
-      unitPriceToman: asNumber(item.unit_price_toman),
-      quantity: asNumber(item.quantity),
-      lineTotalToman: asNumber(item.line_total_toman),
-    })),
-    payments: payments.map((payment) => ({
-      id: asString(payment.id),
-      status: asString(payment.status) as AdminOrderPayment["status"],
-      amountToman: asNumber(payment.amount_toman),
-      reviewNote: typeof payment.review_note === "string" ? payment.review_note : null,
-      createdAt: asString(payment.created_at),
-      reviewedAt: typeof payment.reviewed_at === "string" ? payment.reviewed_at : null,
-      storagePath: asString(payment.storage_path),
-      payerName: typeof payment.payer_name === "string" ? payment.payer_name : null,
-      cardLast4: typeof payment.card_last4 === "string" ? payment.card_last4 : null,
-      bankName: typeof payment.bank_name === "string" ? payment.bank_name : null,
-      trackingCode: typeof payment.tracking_code === "string" ? payment.tracking_code : null,
-    })),
+    items: mapItems(row.items),
+    payments: mapPayments(row.payments),
     events: events
       .map((event) => ({
         id: asString(event.id),
@@ -266,7 +280,7 @@ export const NEXT_ORDER_STATUSES: Record<OrderStatus, OrderStatus[]> = {
 
 export async function fetchAdminPendingCounts(): Promise<{ pendingOrders: number; pendingReceipts: number }> {
   const [ordersRes, receiptsRes] = await Promise.all([
-    supabase.from("orders").select("id", { count: "exact", head: true }).in("status", ["pending_review", "paid", "processing", "preparing"]),
+    supabase.from("orders").select("id", { count: "exact", head: true }).in("status", ["awaiting_payment", "pending_review", "paid", "processing", "preparing"]),
     supabase.from("payment_receipts").select("id", { count: "exact", head: true }).eq("status", "pending"),
   ]);
   return {

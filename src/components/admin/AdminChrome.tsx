@@ -74,7 +74,7 @@ export function AdminPageHeader({ eyebrow, title, description }: { eyebrow: stri
         .catch(() => {});
     };
     load();
-    const timer = setInterval(load, 20000);
+    const timer = setInterval(load, 15000);
     return () => {
       mounted = false;
       clearInterval(timer);
@@ -84,21 +84,21 @@ export function AdminPageHeader({ eyebrow, title, description }: { eyebrow: stri
   return (
     <div className="space-y-6">
       {(counts.pendingReceipts > 0 || counts.pendingOrders > 0) && (
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-gold-500/50 bg-ivory-200/80 px-5 py-3.5 text-sm shadow-soft">
-          <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-burgundy-700 text-ivory-50">
-              <Bell className="h-4 w-4" />
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border-2 border-burgundy-700/30 bg-ivory-200/90 px-5 py-4 text-sm shadow-soft">
+          <div className="flex items-center gap-3.5">
+            <span className="flex h-10 w-10 shrink-0 animate-pulse items-center justify-center rounded-full bg-burgundy-700 text-ivory-50">
+              <Bell className="h-5 w-5" />
             </span>
             <div>
-              <p className="font-bold text-ink-900">اعلان مدیریت سفارش‌ها</p>
-              <p className="text-xs text-ink-700">
-                {counts.pendingReceipts > 0 && `${counts.pendingReceipts.toLocaleString("fa-IR")} فیش واریزی در انتظار تأیید شماست. `}
-                {counts.pendingOrders > 0 && `${counts.pendingOrders.toLocaleString("fa-IR")} سفارش فعال در مرحله آماده‌سازی یا بررسی قرار دارد.`}
+              <p className="text-base font-bold text-ink-900">اعلان سفارش جدید در فروشگاه</p>
+              <p className="mt-0.5 text-xs text-ink-700">
+                {counts.pendingReceipts > 0 && `${counts.pendingReceipts.toLocaleString("fa-IR")} فیش واریزی جدید منتظر تأیید شماست. `}
+                {counts.pendingOrders > 0 && `${counts.pendingOrders.toLocaleString("fa-IR")} سفارش فعال در لیست پیگیری و ارسال قرار دارد.`}
               </p>
             </div>
           </div>
-          <Link to="/admin/orders" className="btn-primary h-9 px-4 text-xs">
-            مشاهده و مدیریت سفارش‌ها
+          <Link to="/admin/orders" className="btn-primary h-10 px-5 text-xs">
+            مشاهده و تأیید سفارش‌ها
           </Link>
         </div>
       )}

@@ -31,7 +31,7 @@ function getCustomerStatusBanner(status: OrderStatus, trackingCode: string | nul
     case "processing":
     case "preparing":
       return {
-        title: "سفارش شما تأیید شد و آماده ارسال است!",
+        title: "سفارش شما ثبت و تأیید شد و آماده ارسال است!",
         desc: "پرداخت شما با موفقیت تأیید گردید. سفارش شما در حال بسته‌بندی و تحویل به واحد ارسال است.",
         tone: "bg-success-100 border-success-600/30 text-success-600",
         step: 2,
@@ -47,7 +47,7 @@ function getCustomerStatusBanner(status: OrderStatus, trackingCode: string | nul
       };
     case "delivered":
       return {
-        title: "سفارش تحویل داده شد",
+        title: "سفارش تحویل داده شد ✓",
         desc: "این سفارش با موفقیت به دست شما رسیده است. از خرید شما از نُوا شاپ سپاسگزاریم!",
         tone: "bg-success-100 border-success-600/30 text-success-600",
         step: 4,
@@ -99,7 +99,7 @@ function OrderContent({ id, userId }: { id: string; userId: string }) {
     { id: 1, label: "ثبت سفارش و بررسی", icon: Clock },
     { id: 2, label: "تأیید شده و آماده ارسال", icon: CheckCircle2 },
     { id: 3, label: "ارسال شده", icon: Truck },
-    { id: 4, label: "تحویل شده", icon: PackageCheck },
+    { id: 4, label: "تحویل شده ✓", icon: PackageCheck },
   ];
 
   return (
