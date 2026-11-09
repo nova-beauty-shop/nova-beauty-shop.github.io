@@ -280,7 +280,7 @@ export const NEXT_ORDER_STATUSES: Record<OrderStatus, OrderStatus[]> = {
 
 export async function fetchAdminPendingCounts(): Promise<{ pendingOrders: number; pendingReceipts: number }> {
   const [ordersRes, receiptsRes] = await Promise.all([
-    supabase.from("orders").select("id", { count: "exact", head: true }).in("status", ["awaiting_payment", "pending_review", "paid", "processing", "preparing"]),
+    supabase.from("orders").select("id", { count: "exact", head: true }).in("status", ["pending_review", "paid", "processing", "preparing", "shipped"]),
     supabase.from("payment_receipts").select("id", { count: "exact", head: true }).eq("status", "pending"),
   ]);
   return {
@@ -303,14 +303,16 @@ export async function advanceOrderStatusTo(
     for (let i = startIdx + 1; i <= endIdx; i++) {
       const step = flow[i];
       const isLast = i === endIdx;
+      const safeTracking = step === "shipped" ? (trackingCode.trim().length >= 3 ? trackingCode.trim() : "ارسال به مشتری") : "";
       await updateOrderStatus(
         orderId,
         step,
         isLast ? note : "",
-        step === "shipped" ? (trackingCode.trim() || "ارسال به مشتری") : "",
+        safeTracking,
       );
     }
   } else {
-    await updateOrderStatus(orderId, targetStatus, note, trackingCode);
+    const safeTracking = targetStatus === "shipped" ? (trackingCode.trim().length >= 3 ? trackingCode.trim() : "ارسال به مشتری") : trackingCode;
+    await updateOrderStatus(orderId, targetStatus, note, safeTracking);
   }
 }

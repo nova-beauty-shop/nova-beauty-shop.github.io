@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bell, CreditCard, FileText, LayoutDashboard, LayoutGrid, Receipt, ShoppingBag, Store, Users } from "lucide-react";
+import { Bell, Clock, CreditCard, FileText, LayoutDashboard, LayoutGrid, Receipt, ShoppingBag, Store, Users } from "lucide-react";
 import Link from "@/components/common/Link";
 import { useLocation } from "@/lib/navigation";
 import { fetchAdminPendingCounts } from "@/lib/adminOrders";
@@ -84,21 +84,21 @@ export function AdminPageHeader({ eyebrow, title, description }: { eyebrow: stri
   return (
     <div className="space-y-6">
       {(counts.pendingReceipts > 0 || counts.pendingOrders > 0) && (
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border-2 border-burgundy-700/30 bg-ivory-200/90 px-5 py-4 text-sm shadow-soft">
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border-2 border-gold-500 bg-ivory-200/90 px-5 py-4 text-sm shadow-soft">
           <div className="flex items-center gap-3.5">
-            <span className="flex h-10 w-10 shrink-0 animate-pulse items-center justify-center rounded-full bg-burgundy-700 text-ivory-50">
-              <Bell className="h-5 w-5" />
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-burgundy-700 text-ivory-50">
+              {counts.pendingReceipts > 0 ? <Bell className="h-5 w-5" /> : <Clock className="h-5 w-5" />}
             </span>
             <div>
-              <p className="text-base font-bold text-ink-900">اعلان سفارش جدید در فروشگاه</p>
+              <p className="text-base font-bold text-ink-900">یادآور سفارش‌های باز و معلق</p>
               <p className="mt-0.5 text-xs text-ink-700">
-                {counts.pendingReceipts > 0 && `${counts.pendingReceipts.toLocaleString("fa-IR")} فیش واریزی جدید منتظر تأیید شماست. `}
-                {counts.pendingOrders > 0 && `${counts.pendingOrders.toLocaleString("fa-IR")} سفارش فعال در لیست پیگیری و ارسال قرار دارد.`}
+                {counts.pendingReceipts > 0 && `⏳ ${counts.pendingReceipts.toLocaleString("fa-IR")} فیش جدید منتظر تأیید شماست. `}
+                {counts.pendingOrders > 0 && `⏰ ${counts.pendingOrders.toLocaleString("fa-IR")} سفارش در وضعیت معلق ارسال قرار دارد (یادتان نرود پس از ارسال، تیک آخرشان را بزنید).`}
               </p>
             </div>
           </div>
           <Link to="/admin/orders" className="btn-primary h-10 px-5 text-xs">
-            مشاهده و تأیید سفارش‌ها
+            رفتن به سفارش‌ها
           </Link>
         </div>
       )}

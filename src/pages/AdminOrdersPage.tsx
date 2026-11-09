@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { CheckCircle, ChevronLeft, ChevronRight, Eye, PackageCheck, Search, Send, Truck, XCircle } from "lucide-react";
+import { CheckCircle, CheckCircle2, ChevronLeft, ChevronRight, Clock, Eye, PackageCheck, Search, XCircle } from "lucide-react";
 import AdminGate from "@/components/admin/AdminGate";
 import { AdminPageHeader } from "@/components/admin/AdminChrome";
 import ReceiptPreview from "@/components/admin/payments/ReceiptPreview";
@@ -8,7 +8,6 @@ import { EmptyState, ErrorState, SkeletonGrid } from "@/components/common/StateV
 import { useAsync } from "@/hooks/useAsync";
 import {
   ADMIN_ORDER_PAGE_SIZE,
-  ADMIN_ORDER_STATUSES,
   advanceOrderStatusTo,
   fetchAdminOrderPage,
   type AdminOrderRow,
@@ -16,7 +15,8 @@ import {
 import { formatDate, formatToman } from "@/lib/format";
 import { ORDER_STATUS_LABELS } from "@/lib/orderLabels";
 import { reviewReceipt } from "@/lib/payments";
-import type { OrderStatus } from "@/lib/orders";
+
+type QuickTab = "all" | "needs_approval" | "pending_send" | "completed";
 
 export default function AdminOrdersPage() {
   return <AdminGate>{() => <AdminOrdersContent />}</AdminGate>;
@@ -25,9 +25,28 @@ export default function AdminOrdersPage() {
 function AdminOrdersContent() {
   const [draftSearch, setDraftSearch] = useState("");
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState<OrderStatus | null>(null);
+  const [tab, setTab] = useState<QuickTab>("all");
   const [page, setPage] = useState(0);
-  const orders = useAsync(() => fetchAdminOrderPage({ search, status, page }), [search, status, page]);
+  const orders = useAsync(() => fetchAdminOrderPage({ search, status: null, page }), [search, page]);
+
+  const allRows = orders.data?.rows ?? [];
+
+  const needsApprovalRows = allRows.filter(
+    (r) => r.status === "pending_review" || r.status === "awaiting_payment" || r.payments.some((p) => p.status === "pending")
+  );
+  const pendingSendRows = allRows.filter((r) =>
+    ["paid", "processing", "preparing", "shipped"].includes(r.status)
+  );
+  const completedRows = allRows.filter((r) => r.status === "delivered");
+
+  const visibleRows =
+    tab === "needs_approval"
+      ? needsApprovalRows
+      : tab === "pending_send"
+      ? pendingSendRows
+      : tab === "completed"
+      ? completedRows
+      : allRows;
 
   const total = orders.data?.total ?? 0;
   const pageCount = Math.max(1, Math.ceil(total / ADMIN_ORDER_PAGE_SIZE));
@@ -41,71 +60,131 @@ function AdminOrdersContent() {
   return (
     <div className="container-nova py-12 md:py-16">
       <AdminPageHeader
-        eyebrow="مدیریت آسان سفارش‌ها"
-        title="سفارش‌های مشتریان"
-        description="در هر کارت، نام و آدرس مشتری، کالاهای سفارش داده‌شده و عکس فیش واریزی را یکجا ببینید و با یک کلیک سفارش را تأیید و ارسال کنید."
+        eyebrow="پنل ساده و بدون پیچیدگی"
+        title="مدیریت سفارش‌ها"
+        description="۱. فیش را تأیید کنید (تیک اول می‌خورد و در وضعیت معلق ارسال با آیکون ساعت قرار می‌گیرد) ← ۲. پس از ارسال، تیک آخر را بزنید."
       />
 
-      <div className="mt-10 space-y-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <form onSubmit={handleSearch} role="search" className="flex flex-1 gap-3">
-            <label htmlFor="order-search" className="sr-only">
-              جستجوی سفارش
-            </label>
-            <div className="relative flex-1">
-              <Search className="pointer-events-none absolute start-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500" aria-hidden="true" />
-              <input
-                id="order-search"
-                type="search"
-                value={draftSearch}
-                onChange={(event) => setDraftSearch(event.target.value)}
-                placeholder="جستجوی شماره سفارش، نام مشتری یا شماره موبایل..."
-                className="field ps-11"
-              />
+      <div className="mt-8 space-y-6">
+        {/* Simple Visual Filter Tabs */}
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <button
+            type="button"
+            onClick={() => setTab("all")}
+            className={`flex items-center justify-between rounded-2xl border p-4 text-start transition ${
+              tab === "all"
+                ? "border-burgundy-700 bg-burgundy-700 text-ivory-50 shadow-soft"
+                : "border-ivory-300 bg-ivory-50 text-ink-800 hover:border-gold-500"
+            }`}
+          >
+            <div>
+              <p className="text-xs opacity-80">نمایش یکجا</p>
+              <p className="mt-1 text-sm font-bold">همه سفارش‌ها</p>
             </div>
-            <button type="submit" className="btn-primary">
-              جستجو
-            </button>
-          </form>
+            <span className="rounded-full bg-black/10 px-3 py-1 text-sm font-bold">
+              {allRows.length.toLocaleString("fa-IR")}
+            </span>
+          </button>
 
-          <label className="flex items-center gap-3 text-sm text-ink-700">
-            فیلتر وضعیت:
-            <select
-              value={status ?? ""}
-              onChange={(event) => {
-                setPage(0);
-                setStatus(event.target.value === "" ? null : (event.target.value as OrderStatus));
-              }}
-              className="field h-11 w-auto min-w-[12rem]"
-            >
-              <option value="">همه سفارش‌ها</option>
-              {ADMIN_ORDER_STATUSES.map((item) => (
-                <option key={item} value={item}>
-                  {ORDER_STATUS_LABELS[item]}
-                </option>
-              ))}
-            </select>
-          </label>
+          <button
+            type="button"
+            onClick={() => setTab("needs_approval")}
+            className={`flex items-center justify-between rounded-2xl border p-4 text-start transition ${
+              tab === "needs_approval"
+                ? "border-burgundy-700 bg-burgundy-700 text-ivory-50 shadow-soft"
+                : "border-ivory-300 bg-ivory-50 text-ink-800 hover:border-gold-500"
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <Clock className="h-5 w-5 shrink-0" />
+              <div>
+                <p className="text-xs opacity-80">گام اول</p>
+                <p className="mt-0.5 text-sm font-bold">منتظر تأیید فیش</p>
+              </div>
+            </div>
+            <span className="rounded-full bg-gold-500/30 px-3 py-1 text-sm font-bold">
+              {needsApprovalRows.length.toLocaleString("fa-IR")}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setTab("pending_send")}
+            className={`flex items-center justify-between rounded-2xl border p-4 text-start transition ${
+              tab === "pending_send"
+                ? "border-burgundy-700 bg-burgundy-700 text-ivory-50 shadow-soft"
+                : "border-gold-500/60 bg-ivory-200/70 text-ink-900 hover:border-burgundy-700"
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <Clock className="h-5 w-5 shrink-0" />
+              <div>
+                <p className="text-xs opacity-80">تأیید شده (معلق ارسال)</p>
+                <p className="mt-0.5 text-sm font-bold">منتظر تیک آخر ارسال</p>
+              </div>
+            </div>
+            <span className="rounded-full bg-burgundy-700 px-3 py-1 text-sm font-bold text-ivory-50">
+              {pendingSendRows.length.toLocaleString("fa-IR")}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setTab("completed")}
+            className={`flex items-center justify-between rounded-2xl border p-4 text-start transition ${
+              tab === "completed"
+                ? "border-burgundy-700 bg-burgundy-700 text-ivory-50 shadow-soft"
+                : "border-ivory-300 bg-ivory-50 text-ink-800 hover:border-gold-500"
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <CheckCircle2 className="h-5 w-5 shrink-0" />
+              <div>
+                <p className="text-xs opacity-80">تکمیل شده</p>
+                <p className="mt-0.5 text-sm font-bold">ارسال و تحویل شده ✓</p>
+              </div>
+            </div>
+            <span className="rounded-full bg-success-100 px-3 py-1 text-sm font-bold text-success-600">
+              {completedRows.length.toLocaleString("fa-IR")}
+            </span>
+          </button>
         </div>
+
+        <form onSubmit={handleSearch} role="search" className="flex gap-3">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute start-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500" aria-hidden="true" />
+            <input
+              id="order-search"
+              type="search"
+              value={draftSearch}
+              onChange={(event) => setDraftSearch(event.target.value)}
+              placeholder="جستجوی نام مشتری، شماره تماس یا کد سفارش..."
+              className="field ps-11"
+            />
+          </div>
+          <button type="submit" className="btn-primary">
+            جستجو
+          </button>
+        </form>
 
         {orders.loading && <SkeletonGrid count={3} />}
         {orders.error && <ErrorState onRetry={orders.retry} />}
-        {orders.data && orders.data.rows.length === 0 && (
-          <EmptyState title="سفارشی پیدا نشد" description="هنوز سفارشی با این مشخصات ثبت نشده است." />
+        {orders.data && visibleRows.length === 0 && (
+          <EmptyState title="سفارشی در این بخش وجود ندارد" description="می‌توانید از تب‌های بالا بخش دیگری را انتخاب کنید." />
         )}
 
-        {orders.data && orders.data.rows.length > 0 && (
+        {orders.data && visibleRows.length > 0 && (
           <div className="space-y-6">
-            {orders.data.rows.map((row) => (
+            {visibleRows.map((row) => (
               <AdminOrderCard key={row.id} row={row} onUpdated={orders.retry} />
             ))}
           </div>
         )}
 
-        {orders.data && total > 0 && (
+        {orders.data && total > ADMIN_ORDER_PAGE_SIZE && (
           <nav aria-label="صفحه‌بندی سفارش‌ها" className="flex items-center justify-between gap-4 pt-4 text-sm text-ink-700">
             <span>
-              صفحه {page + 1} از {pageCount} · مجموعاً {total} سفارش
+              صفحه {page + 1} از {pageCount}
             </span>
             <div className="flex gap-2">
               <button
@@ -143,6 +222,9 @@ function AdminOrderCard({ row, onUpdated }: { row: AdminOrderRow; onUpdated: () 
   const latestReceipt = row.payments[0] ?? null;
   const pendingReceipt = row.payments.find((p) => p.status === "pending") ?? null;
 
+  const isApprovedPendingSend = ["paid", "processing", "preparing", "shipped"].includes(row.status);
+  const isCompleted = row.status === "delivered";
+
   async function handleApprove() {
     if (busy) return;
     setBusy(true);
@@ -163,10 +245,10 @@ function AdminOrderCard({ row, onUpdated }: { row: AdminOrderRow; onUpdated: () 
           ""
         );
       }
-      setNotice("سفارش تأیید شد و پیام «ثبت شد و آماده ارسال است» برای مشتری ارسال گردید.");
+      setNotice("✓ فیش تأیید شد و پیام «آماده ارسال» برای مشتری رفت. سفارش در حالت «معلق ارسال» قرار گرفت تا تیک آخر را بزنید.");
       onUpdated();
     } catch {
-      setErr("خطا در تأیید سفارش. لطفاً مطمئن شوید مشتری فیش واریزی را ارسال کرده است.");
+      setErr("برای تأیید سفارش، ابتدا باید مشتری فیش واریزی را ارسال کرده باشد.");
     } finally {
       setBusy(false);
     }
@@ -174,14 +256,14 @@ function AdminOrderCard({ row, onUpdated }: { row: AdminOrderRow; onUpdated: () 
 
   async function handleReject() {
     if (!pendingReceipt || busy) return;
-    const reason = window.prompt("لطفاً دلیل رد فیش را برای مشتری بنویسید:", "تصویر فیش نامعتبر یا مبلغ واریزی نادرست است.");
+    const reason = window.prompt("دلیل رد فیش برای نمایش به مشتری:", "تصویر فیش نامعتبر است.");
     if (!reason || reason.trim().length < 3) return;
     setBusy(true);
     setErr(null);
     setNotice(null);
     try {
       await reviewReceipt(pendingReceipt.id, false, reason.trim());
-      setNotice("فیش واریزی رد شد و به مشتری اطلاع داده شد.");
+      setNotice("فیش رد شد و به مشتری اطلاع داده شد.");
       onUpdated();
     } catch {
       setErr("خطا در رد کردن فیش.");
@@ -190,95 +272,95 @@ function AdminOrderCard({ row, onUpdated }: { row: AdminOrderRow; onUpdated: () 
     }
   }
 
-  async function handleShip() {
+  async function handleFinalTick() {
     if (busy) return;
     setBusy(true);
     setErr(null);
     setNotice(null);
     try {
-      await advanceOrderStatusTo(
-        row.id,
-        row.status,
-        "shipped",
-        "بسته شما تحویل پست/پیک داده شد و ارسال گردید.",
-        trackingInput.trim() || "ارسال شده"
-      );
-      setNotice("وضعیت سفارش به «ارسال شده» تغییر یافت.");
-      onUpdated();
-    } catch {
-      setErr("خطا در ثبت ارسال سفارش.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function handleDeliver() {
-    if (busy) return;
-    setBusy(true);
-    setErr(null);
-    setNotice(null);
-    try {
+      const code = trackingInput.trim() || row.trackingCode || "ارسال به مشتری";
       await advanceOrderStatusTo(
         row.id,
         row.status,
         "delivered",
-        "سفارش با موفقیت تحویل مشتری گردید.",
-        row.trackingCode || trackingInput.trim() || "تحویل شده"
+        "سفارش شما ارسال شد و تحویل گردید.",
+        code
       );
-      setNotice("تیک نهایی تحویل سفارش با موفقیت زده شد!");
+      setNotice("✅ تیک نهایی زده شد! سفارش به وضعیت «تکمیل و ارسال شده» تغییر یافت.");
       onUpdated();
     } catch {
-      setErr("خطا در ثبت تیک تحویل نهایی.");
+      setErr("خطا در ثبت تیک نهایی. لطفاً دوباره تلاش کنید.");
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <article className="rounded-3xl border-2 border-ivory-300 bg-ivory-50 p-6 shadow-soft transition hover:border-gold-500/60 md:p-8">
-      {/* Header: Order number, date, status badge */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-ivory-300 pb-5">
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="rounded-full bg-burgundy-700 px-4 py-1.5 font-mono text-sm font-bold text-ivory-50" dir="ltr">
-            {row.orderNumber}
-          </span>
-          <span className="text-xs text-ink-500">ثبت شده در {formatDate(row.createdAt)}</span>
-          <span className="rounded-full bg-ivory-200 px-3.5 py-1 text-xs font-bold text-ink-900">
-            وضعیت فعلی: {ORDER_STATUS_LABELS[row.status]}
-          </span>
-          {pendingReceipt && (
-            <span className="rounded-full bg-gold-500/30 px-3 py-1 text-xs font-bold text-burgundy-900">
-              فیش جدید در انتظار تأیید شما
+    <article
+      className={`rounded-3xl border-2 p-6 shadow-soft transition md:p-8 ${
+        isCompleted
+          ? "border-success-600/40 bg-ivory-50/70"
+          : isApprovedPendingSend
+          ? "border-gold-500 bg-ivory-50"
+          : "border-ivory-300 bg-ivory-50"
+      }`}
+    >
+      {/* Visual Status Strip at top of card */}
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-ivory-200/70 px-4 py-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          {isCompleted ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-success-100 px-3.5 py-1.5 text-xs font-bold text-success-600">
+              <CheckCircle2 className="h-4 w-4" />
+              ✅ تکمیل شده (تأیید و ارسال شد)
+            </span>
+          ) : isApprovedPendingSend ? (
+            <>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-success-100 px-3 py-1 text-xs font-bold text-success-600">
+                <CheckCircle className="h-4 w-4" />
+                ✓ فیش تأیید شد (پیام آماده ارسال برای مشتری رفت)
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-gold-500/30 px-3.5 py-1 text-xs font-bold text-burgundy-900">
+                <Clock className="h-4 w-4" />
+                ⏰ معلق ارسال — یادتان نرود پس از ارسال، تیک آخر را بزنید!
+              </span>
+            </>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-gold-500/25 px-3.5 py-1.5 text-xs font-bold text-burgundy-900">
+              <Clock className="h-4 w-4" />
+              ⏳ سفارش جدید — منتظر تأیید فیش توسط شما ({ORDER_STATUS_LABELS[row.status]})
             </span>
           )}
         </div>
-        <div className="flex items-center gap-4">
-          <p className="text-base font-bold text-burgundy-800">مبلغ کل: {formatToman(row.totalToman)}</p>
-          <Link to={`/admin/orders/${row.id}`} className="btn-outline h-9 px-4 text-xs">
+
+        <div className="flex items-center gap-3">
+          <span className="font-mono text-xs font-bold text-ink-700" dir="ltr">
+            {row.orderNumber}
+          </span>
+          <span className="text-xs text-ink-500">{formatDate(row.createdAt)}</span>
+          <Link to={`/admin/orders/${row.id}`} className="btn-outline h-8 px-3 text-xs">
             <Eye className="h-3.5 w-3.5" />
-            جزئیات و چاپ فاکتور
+            فاکتور
           </Link>
         </div>
       </div>
 
       {notice && (
-        <div className="mt-4 rounded-2xl bg-success-100 px-4 py-3 text-xs font-bold text-success-600">
+        <div className="mb-5 rounded-2xl bg-success-100 px-4 py-3 text-xs font-bold text-success-600">
           {notice}
         </div>
       )}
       {err && (
-        <div className="mt-4 rounded-2xl bg-error-100 px-4 py-3 text-xs font-bold text-error-600">
+        <div className="mb-5 rounded-2xl bg-error-100 px-4 py-3 text-xs font-bold text-error-600">
           {err}
         </div>
       )}
 
-      {/* Body: 3 clear columns -> 1. Customer & Address, 2. Ordered Items, 3. Receipt Image */}
-      <div className="mt-6 grid gap-6 lg:grid-cols-3">
-        {/* Column 1: Customer Info */}
+      {/* 3 Clear Columns: 1. Customer Name & Address, 2. Items Ordered, 3. Receipt Image */}
+      <div className="grid gap-5 lg:grid-cols-3">
         <div className="rounded-2xl border border-ivory-300 bg-ivory-100/60 p-4">
-          <h3 className="text-xs font-bold text-burgundy-700">۱. مشخصات و آدرس مشتری</h3>
+          <h3 className="text-xs font-bold text-burgundy-700">۱. نام مشتری و آدرس</h3>
           <p className="mt-2 text-base font-bold text-ink-900">{row.recipientName}</p>
-          <p className="mt-1 font-mono text-sm font-bold text-ink-700" dir="ltr">
+          <p className="mt-1 font-mono text-sm font-bold text-burgundy-700" dir="ltr">
             {row.phone}
           </p>
           <p className="mt-2 text-xs leading-relaxed text-ink-700">
@@ -289,9 +371,11 @@ function AdminOrderCard({ row, onUpdated }: { row: AdminOrderRow; onUpdated: () 
           </p>
         </div>
 
-        {/* Column 2: Ordered Items */}
         <div className="rounded-2xl border border-ivory-300 bg-ivory-100/60 p-4">
-          <h3 className="text-xs font-bold text-burgundy-700">۲. اقلام سفارش داده‌شده ({row.items.length} کالا)</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-bold text-burgundy-700">۲. چیزهایی که سفارش داده</h3>
+            <span className="text-xs font-bold text-ink-900">جمع: {formatToman(row.totalToman)}</span>
+          </div>
           <ul className="mt-2 divide-y divide-ivory-300 text-xs">
             {row.items.map((item) => (
               <li key={item.id} className="flex items-center justify-between gap-2 py-2">
@@ -301,23 +385,19 @@ function AdminOrderCard({ row, onUpdated }: { row: AdminOrderRow; onUpdated: () 
                     {item.brand} {item.variantLabel ? `· ${item.variantLabel}` : ""}
                   </p>
                 </div>
-                <div className="shrink-0 text-end">
-                  <span className="rounded-lg bg-burgundy-700/10 px-2 py-0.5 font-bold text-burgundy-800">
-                    {item.quantity} عدد
-                  </span>
-                  <p className="mt-0.5 font-medium text-ink-700">{formatToman(item.lineTotalToman)}</p>
-                </div>
+                <span className="shrink-0 rounded-lg bg-burgundy-700/10 px-2.5 py-1 font-bold text-burgundy-800">
+                  {item.quantity} عدد
+                </span>
               </li>
             ))}
           </ul>
         </div>
 
-        {/* Column 3: Receipt Image Preview */}
         <div className="rounded-2xl border border-ivory-300 bg-ivory-100/60 p-4">
-          <h3 className="text-xs font-bold text-burgundy-700">۳. تصویر فیش واریزی</h3>
+          <h3 className="text-xs font-bold text-burgundy-700">۳. عکس فیش واریزی</h3>
           {!latestReceipt ? (
             <p className="mt-4 rounded-xl bg-ivory-200/70 p-3 text-xs text-ink-500">
-              مشتری هنوز تصویر فیش واریزی را آپلود نکرده است.
+              مشتری هنوز عکس فیش را نفرستاده است.
             </p>
           ) : (
             <div className="mt-2 space-y-2 text-xs">
@@ -335,89 +415,68 @@ function AdminOrderCard({ row, onUpdated }: { row: AdminOrderRow; onUpdated: () 
         </div>
       </div>
 
-      {/* Footer Actions: 3 Step Buttons */}
-      <div className="mt-6 grid gap-3 border-t border-ivory-300 pt-5 md:grid-cols-3">
-        {/* Step 1 Button */}
-        <div className="flex flex-col gap-2">
-          {["preparing", "shipped", "delivered"].includes(row.status) ? (
-            <div className="flex h-11 items-center justify-center gap-2 rounded-2xl bg-success-100 px-4 text-xs font-bold text-success-600">
-              <CheckCircle className="h-4 w-4" />
-              ۱. تأیید و آماده ارسال شد
+      {/* Ultra-Simple 2-Step Action Bar */}
+      <div className="mt-6 grid gap-4 border-t border-ivory-300 pt-5 md:grid-cols-2">
+        {/* Button 1: Approve & Mark Ready (Adds First Checkmark + Clock Pending Icon) */}
+        <div className="flex items-center gap-2">
+          {isApprovedPendingSend || isCompleted ? (
+            <div className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-success-600/30 bg-success-100 px-4 text-xs font-bold text-success-600">
+              <CheckCircle className="h-4 w-4 shrink-0" />
+              <span>تیک ۱ خورده: فیش تأیید شد و پیام آماده ارسال برای مشتری رفت</span>
             </div>
           ) : (
-            <div className="flex gap-2">
+            <>
               <button
                 type="button"
                 disabled={busy || (!pendingReceipt && !["paid", "processing"].includes(row.status))}
                 onClick={() => void handleApprove()}
-                className="btn-primary h-11 flex-1 text-xs"
+                className="btn-primary h-12 flex-1 text-xs"
               >
                 <CheckCircle className="h-4 w-4" />
-                {busy ? "در حال ثبت..." : "۱. تأیید فیش و آماده ارسال"}
+                {busy ? "در حال ثبت..." : "گام ۱: تأیید فیش و سفارش (ارسال پیام آماده ارسال به کاربر)"}
               </button>
               {pendingReceipt && (
                 <button
                   type="button"
                   disabled={busy}
                   onClick={() => void handleReject()}
-                  className="btn-outline h-11 px-3 text-xs text-error-600"
-                  title="رد کردن فیش"
+                  className="btn-outline h-12 px-4 text-xs text-error-600"
                 >
                   <XCircle className="h-4 w-4" />
                   رد فیش
                 </button>
               )}
-            </div>
+            </>
           )}
         </div>
 
-        {/* Step 2 Button */}
-        <div className="flex gap-2">
-          {["shipped", "delivered"].includes(row.status) ? (
-            <div className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-success-100 px-4 text-xs font-bold text-success-600">
-              <Truck className="h-4 w-4" />
-              ۲. بسته ارسال شده است
+        {/* Button 2: Final Tick (Sent & Delivered) */}
+        <div className="flex items-center gap-2">
+          {isCompleted ? (
+            <div className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-success-600/30 bg-success-100 px-4 text-xs font-bold text-success-600">
+              <PackageCheck className="h-4 w-4 shrink-0" />
+              <span>✅ تیک آخر خورده: سفارش ارسال و تکمیل شده است</span>
             </div>
           ) : (
             <>
               <input
                 type="text"
                 dir="ltr"
-                placeholder="کد رهگیری (اختیاری)"
+                placeholder="کد رهگیری پستی (اختیاری)"
                 value={trackingInput}
                 onChange={(e) => setTrackingInput(e.target.value)}
-                className="field h-11 w-36 text-xs"
+                className="field h-12 w-40 text-xs"
               />
               <button
                 type="button"
-                disabled={busy || !["paid", "processing", "preparing"].includes(row.status)}
-                onClick={() => void handleShip()}
-                className="btn-primary h-11 flex-1 text-xs"
+                disabled={busy || !isApprovedPendingSend}
+                onClick={() => void handleFinalTick()}
+                className="btn-primary h-12 flex-1 text-xs"
               >
-                <Send className="h-4 w-4" />
-                ۲. ثبت ارسال
+                <PackageCheck className="h-4 w-4" />
+                {busy ? "در حال ثبت..." : "گام ۲: زدن تیک آخر (ارسال و تحویل شد ✓)"}
               </button>
             </>
-          )}
-        </div>
-
-        {/* Step 3 Button */}
-        <div>
-          {row.status === "delivered" ? (
-            <div className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-success-100 px-4 text-xs font-bold text-success-600">
-              <PackageCheck className="h-4 w-4" />
-              ۳. تحویل داده شد (تکمیل نهایی)
-            </div>
-          ) : (
-            <button
-              type="button"
-              disabled={busy || row.status !== "shipped"}
-              onClick={() => void handleDeliver()}
-              className="btn-primary h-11 w-full text-xs"
-            >
-              <PackageCheck className="h-4 w-4" />
-              ۳. زدن تیک آخر (تحویل شد)
-            </button>
           )}
         </div>
       </div>
