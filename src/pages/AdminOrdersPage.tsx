@@ -60,13 +60,12 @@ function AdminOrdersContent() {
   return (
     <div className="container-nova py-12 md:py-16">
       <AdminPageHeader
-        eyebrow="پنل ساده و بدون پیچیدگی"
+        eyebrow="پنل ساده و یکپارچه"
         title="مدیریت سفارش‌ها"
-        description="۱. فیش را تأیید کنید (تیک اول می‌خورد و در وضعیت معلق ارسال با آیکون ساعت قرار می‌گیرد) ← ۲. پس از ارسال، تیک آخر را بزنید."
+        description="زیر عکس هر فیش دکمه «تأیید فیش» را بزنید تا سفارش وارد حالت «معلق ارسال ⏰» شود؛ سپس هر زمان بسته را فرستادید، تیک آخر پایین کارت را بزنید."
       />
 
       <div className="mt-8 space-y-6">
-        {/* Simple Visual Filter Tabs */}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <button
             type="button"
@@ -245,7 +244,7 @@ function AdminOrderCard({ row, onUpdated }: { row: AdminOrderRow; onUpdated: () 
           ""
         );
       }
-      setNotice("✓ فیش تأیید شد و پیام «آماده ارسال» برای مشتری رفت. سفارش در حالت «معلق ارسال» قرار گرفت تا تیک آخر را بزنید.");
+      setNotice("✓ فیش تأیید شد و پیام «آماده ارسال» برای مشتری رفت. سفارش در حالت «معلق ارسال ⏰» قرار گرفت.");
       onUpdated();
     } catch {
       setErr("برای تأیید سفارش، ابتدا باید مشتری فیش واریزی را ارسال کرده باشد.");
@@ -305,7 +304,7 @@ function AdminOrderCard({ row, onUpdated }: { row: AdminOrderRow; onUpdated: () 
           : "border-ivory-300 bg-ivory-50"
       }`}
     >
-      {/* Visual Status Strip at top of card */}
+      {/* Top Status Strip */}
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-ivory-200/70 px-4 py-3">
         <div className="flex flex-wrap items-center gap-2.5">
           {isCompleted ? (
@@ -317,17 +316,17 @@ function AdminOrderCard({ row, onUpdated }: { row: AdminOrderRow; onUpdated: () 
             <>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-success-100 px-3 py-1 text-xs font-bold text-success-600">
                 <CheckCircle className="h-4 w-4" />
-                ✓ فیش تأیید شد (پیام آماده ارسال برای مشتری رفت)
+                ✓ فیش تأیید شده
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-gold-500/30 px-3.5 py-1 text-xs font-bold text-burgundy-900">
                 <Clock className="h-4 w-4" />
-                ⏰ معلق ارسال — یادتان نرود پس از ارسال، تیک آخر را بزنید!
+                ⏰ معلق ارسال — یادتان نرود پس از ارسال، تیک آخر پایین کارت را بزنید!
               </span>
             </>
           ) : (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-gold-500/25 px-3.5 py-1.5 text-xs font-bold text-burgundy-900">
               <Clock className="h-4 w-4" />
-              ⏳ سفارش جدید — منتظر تأیید فیش توسط شما ({ORDER_STATUS_LABELS[row.status]})
+              ⏳ سفارش جدید — منتظر تأیید فیش زیر عکس ({ORDER_STATUS_LABELS[row.status]})
             </span>
           )}
         </div>
@@ -339,7 +338,7 @@ function AdminOrderCard({ row, onUpdated }: { row: AdminOrderRow; onUpdated: () 
           <span className="text-xs text-ink-500">{formatDate(row.createdAt)}</span>
           <Link to={`/admin/orders/${row.id}`} className="btn-outline h-8 px-3 text-xs">
             <Eye className="h-3.5 w-3.5" />
-            فاکتور
+            جزئیات و فاکتور
           </Link>
         </div>
       </div>
@@ -355,7 +354,7 @@ function AdminOrderCard({ row, onUpdated }: { row: AdminOrderRow; onUpdated: () 
         </div>
       )}
 
-      {/* 3 Clear Columns: 1. Customer Name & Address, 2. Items Ordered, 3. Receipt Image */}
+      {/* 3 Columns: 1. Customer, 2. Items, 3. Receipt Image + Approve Button RIGHT UNDER THE IMAGE */}
       <div className="grid gap-5 lg:grid-cols-3">
         <div className="rounded-2xl border border-ivory-300 bg-ivory-100/60 p-4">
           <h3 className="text-xs font-bold text-burgundy-700">۱. نام مشتری و آدرس</h3>
@@ -393,69 +392,83 @@ function AdminOrderCard({ row, onUpdated }: { row: AdminOrderRow; onUpdated: () 
           </ul>
         </div>
 
-        <div className="rounded-2xl border border-ivory-300 bg-ivory-100/60 p-4">
-          <h3 className="text-xs font-bold text-burgundy-700">۳. عکس فیش واریزی</h3>
-          {!latestReceipt ? (
-            <p className="mt-4 rounded-xl bg-ivory-200/70 p-3 text-xs text-ink-500">
-              مشتری هنوز عکس فیش را نفرستاده است.
-            </p>
-          ) : (
-            <div className="mt-2 space-y-2 text-xs">
-              {latestReceipt.storagePath && (
-                <div className="max-h-44 overflow-hidden rounded-xl border border-ivory-300 bg-white">
-                  <ReceiptPreview storagePath={latestReceipt.storagePath} />
+        {/* Column 3: Receipt Image + Direct Approve/Reject Buttons Underneath */}
+        <div className="flex flex-col justify-between rounded-2xl border border-ivory-300 bg-ivory-100/60 p-4">
+          <div>
+            <h3 className="text-xs font-bold text-burgundy-700">۳. عکس فیش واریزی و تأیید</h3>
+            {!latestReceipt ? (
+              <p className="mt-3 rounded-xl bg-ivory-200/70 p-3 text-xs text-ink-500">
+                مشتری هنوز عکس فیش را نفرستاده است.
+              </p>
+            ) : (
+              <div className="mt-2 space-y-2 text-xs">
+                {latestReceipt.storagePath && (
+                  <div className="max-h-48 overflow-hidden rounded-xl border border-ivory-300 bg-white">
+                    <ReceiptPreview storagePath={latestReceipt.storagePath} />
+                  </div>
+                )}
+                <div className="flex flex-wrap justify-between gap-1 pt-1 text-[11px] text-ink-700">
+                  {latestReceipt.payerName && <span>واریزکننده: <b>{latestReceipt.payerName}</b></span>}
+                  {latestReceipt.trackingCode && <span dir="ltr">پیگیری: <b>{latestReceipt.trackingCode}</b></span>}
                 </div>
-              )}
-              <div className="flex flex-wrap justify-between gap-1 pt-1 text-[11px] text-ink-700">
-                {latestReceipt.payerName && <span>واریزکننده: <b>{latestReceipt.payerName}</b></span>}
-                {latestReceipt.trackingCode && <span dir="ltr">پیگیری: <b>{latestReceipt.trackingCode}</b></span>}
               </div>
-            </div>
-          )}
+            )}
+          </div>
+
+          {/* Direct Approve Button right below the receipt photo */}
+          <div className="mt-4 border-t border-ivory-300 pt-3">
+            {isApprovedPendingSend || isCompleted ? (
+              <div className="flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border border-success-600/30 bg-success-100 px-3 text-xs font-bold text-success-600">
+                <CheckCircle className="h-4 w-4 shrink-0" />
+                <span>✓ فیش تأیید شد (پیام آماده ارسال رفت)</span>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={busy || (!pendingReceipt && !["paid", "processing"].includes(row.status))}
+                  onClick={() => void handleApprove()}
+                  className="btn-primary h-10 flex-1 px-3 text-xs"
+                >
+                  <CheckCircle className="h-4 w-4 shrink-0" />
+                  {busy ? "در حال ثبت..." : "تأیید فیش و سفارش"}
+                </button>
+                {pendingReceipt && (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void handleReject()}
+                    className="btn-outline h-10 px-3 text-xs text-error-600"
+                  >
+                    <XCircle className="h-4 w-4 shrink-0" />
+                    رد فیش
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Ultra-Simple 2-Step Action Bar */}
-      <div className="mt-6 grid gap-4 border-t border-ivory-300 pt-5 md:grid-cols-2">
-        {/* Button 1: Approve & Mark Ready (Adds First Checkmark + Clock Pending Icon) */}
-        <div className="flex items-center gap-2">
-          {isApprovedPendingSend || isCompleted ? (
-            <div className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-success-600/30 bg-success-100 px-4 text-xs font-bold text-success-600">
-              <CheckCircle className="h-4 w-4 shrink-0" />
-              <span>تیک ۱ خورده: فیش تأیید شد و پیام آماده ارسال برای مشتری رفت</span>
-            </div>
+      {/* Bottom Bar: ONLY Final Shipping Tick (No duplicate receipt buttons) */}
+      <div className="mt-5 flex flex-col items-stretch justify-between gap-3 border-t border-ivory-300 pt-4 sm:flex-row sm:items-center">
+        <div className="text-xs text-ink-700">
+          {isCompleted ? (
+            <span className="font-bold text-success-600">این سفارش به طور کامل ارسال و تحویل شده است.</span>
+          ) : isApprovedPendingSend ? (
+            <span className="font-bold text-burgundy-800">
+              ⏰ سفارش تأیید شده و منتظر ارسال است؛ پس از تحویل به پست/پیک، تیک آخر را بزنید:
+            </span>
           ) : (
-            <>
-              <button
-                type="button"
-                disabled={busy || (!pendingReceipt && !["paid", "processing"].includes(row.status))}
-                onClick={() => void handleApprove()}
-                className="btn-primary h-12 flex-1 text-xs"
-              >
-                <CheckCircle className="h-4 w-4" />
-                {busy ? "در حال ثبت..." : "گام ۱: تأیید فیش و سفارش (ارسال پیام آماده ارسال به کاربر)"}
-              </button>
-              {pendingReceipt && (
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => void handleReject()}
-                  className="btn-outline h-12 px-4 text-xs text-error-600"
-                >
-                  <XCircle className="h-4 w-4" />
-                  رد فیش
-                </button>
-              )}
-            </>
+            <span className="text-ink-500">ابتدا دکمه «تأیید فیش و سفارش» را در کادر زیر عکس فیش بزنید تا دکمه تیک نهایی فعال شود.</span>
           )}
         </div>
 
-        {/* Button 2: Final Tick (Sent & Delivered) */}
         <div className="flex items-center gap-2">
           {isCompleted ? (
-            <div className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-success-600/30 bg-success-100 px-4 text-xs font-bold text-success-600">
+            <div className="flex h-11 items-center justify-center gap-2 rounded-2xl border border-success-600/30 bg-success-100 px-5 text-xs font-bold text-success-600">
               <PackageCheck className="h-4 w-4 shrink-0" />
-              <span>✅ تیک آخر خورده: سفارش ارسال و تکمیل شده است</span>
+              <span>✅ تیک آخر خورده (ارسال و تحویل شد)</span>
             </div>
           ) : (
             <>
@@ -465,16 +478,17 @@ function AdminOrderCard({ row, onUpdated }: { row: AdminOrderRow; onUpdated: () 
                 placeholder="کد رهگیری پستی (اختیاری)"
                 value={trackingInput}
                 onChange={(e) => setTrackingInput(e.target.value)}
-                className="field h-12 w-40 text-xs"
+                disabled={!isApprovedPendingSend}
+                className="field h-11 w-44 text-xs disabled:opacity-50"
               />
               <button
                 type="button"
                 disabled={busy || !isApprovedPendingSend}
                 onClick={() => void handleFinalTick()}
-                className="btn-primary h-12 flex-1 text-xs"
+                className="btn-primary h-11 px-5 text-xs"
               >
-                <PackageCheck className="h-4 w-4" />
-                {busy ? "در حال ثبت..." : "گام ۲: زدن تیک آخر (ارسال و تحویل شد ✓)"}
+                <PackageCheck className="h-4 w-4 shrink-0" />
+                {busy ? "در حال ثبت..." : "زدن تیک آخر (ارسال شد ✓)"}
               </button>
             </>
           )}
