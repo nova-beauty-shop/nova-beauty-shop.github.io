@@ -1,18 +1,16 @@
-
-const PROXY_PREFIX = "https://wsrv.nl/?url=";
-
-export function resolveImageUrl(url: string): string {
-  if (!url || typeof url !== "string") return url;
+export function shieldImageUrl(url: string | null | undefined): string {
+  if (!url || typeof url !== "string") return "";
   const trimmed = url.trim();
-  if (!trimmed || trimmed.startsWith("data:") || trimmed.startsWith("blob:") || trimmed.startsWith("/products/")) {
+  if (!trimmed) return "";
+  if (trimmed.startsWith("/") || trimmed.startsWith("data:") || trimmed.startsWith("blob:")) {
     return trimmed;
   }
-  // If it is an external or Supabase storage image, route through fast unblocked CDN proxy
-  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
-    if (trimmed.includes("wsrv.nl") || trimmed.includes("i0.wp.com")) {
-      return trimmed;
-    }
-    return PROXY_PREFIX + encodeURIComponent(trimmed) + "&output=webp&q=85";
+  const bad = [32, 9, 10, 13, 34, 39, 40, 41, 92, 60, 62, 96].map((c) => String.fromCharCode(c));
+  if (!trimmed.startsWith("https://") || trimmed.length <= 8 || bad.some((c) => trimmed.includes(c))) {
+    return trimmed;
   }
-  return trimmed;
+  if (trimmed.includes("wsrv.nl") || trimmed.includes("supabase.co")) {
+    return trimmed;
+  }
+  return "https://wsrv.nl/?url=" + encodeURIComponent(trimmed) + "&output=webp&q=85";
 }
