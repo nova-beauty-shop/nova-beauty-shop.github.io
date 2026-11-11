@@ -152,24 +152,26 @@ function CheckoutContent() {
               <div className="mt-6 rounded-2xl border border-ivory-300 bg-white p-5 shadow-soft">
                 <h3 className="mb-4 flex items-center gap-2 text-base font-bold text-burgundy-800"><CreditCard className="h-5 w-5" /> اطلاعات کارت بانکی فروشگاه</h3>
                 <p className="mb-4 text-sm leading-relaxed text-ink-700">مبلغ نهایی <b className="text-burgundy-800">{formatToman(total)}</b> را به حساب زیر واریز نمایید و سپس عکس فیش را آپلود کنید.</p>
-                <div className="relative mb-6 overflow-hidden rounded-2xl bg-gradient-to-br from-ink-800 to-ink-900 p-6 text-white shadow-lg">
+                <div className="relative mb-6 overflow-hidden rounded-2xl bg-gradient-to-br from-ink-800 via-ink-900 to-black p-5 sm:p-6 text-white shadow-xl">
                   <div className="flex justify-between items-start mb-6">
-                    <span className="text-sm font-bold opacity-80">{options.settings?.bankName || "نام بانک"}</span>
+                    <span className="text-sm font-bold opacity-90 drop-shadow-md">{options.settings?.bankName?.trim() ? options.settings.bankName : "نام بانک"}</span>
                     <CreditCard className="h-6 w-6 opacity-50" />
                   </div>
-                  <div className="mb-4 flex items-center justify-between">
-                    <span dir="ltr" className="font-mono text-xl tracking-widest sm:text-2xl font-bold">{options.settings?.cardNumber}</span>
-                    <button type="button" onClick={() => copyToClipboard(options.settings?.cardNumber || "")} className="rounded-lg bg-white/10 p-2 hover:bg-white/20 transition"><Copy className="h-4 w-4" /></button>
+                  <div className="mb-6 flex items-center justify-between gap-3">
+                    <span dir="ltr" className="font-mono text-base sm:text-xl tracking-[0.1em] sm:tracking-widest font-bold drop-shadow-md break-all">{options.settings?.cardNumber}</span>
+                    <button type="button" onClick={() => copyToClipboard(options.settings?.cardNumber || "")} className="shrink-0 rounded-lg bg-white/15 p-2 hover:bg-white/25 transition"><Copy className="h-4 w-4" /></button>
                   </div>
-                  <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-3 text-xs opacity-90 border-t border-white/10 pt-4">
-                    <div className="space-y-1">
-                      <span className="block opacity-70 text-[10px]">صاحب حساب:</span>
-                      <span className="font-bold text-sm">{options.settings?.accountOwner || "صاحب حساب"}</span>
+                  <div className="flex flex-col gap-3 border-t border-white/15 pt-4">
+                    <div className="flex items-center justify-between text-xs sm:text-sm">
+                      <span className="opacity-75">صاحب حساب:</span>
+                      <span className="font-bold text-white drop-shadow-md truncate max-w-[150px] sm:max-w-[200px] text-end">{options.settings?.accountOwner?.trim() ? options.settings.accountOwner : "ثبت نشده"}</span>
                     </div>
-                    <div className="flex items-center justify-between sm:justify-start gap-2 bg-black/20 rounded-lg py-1.5 px-3">
-                      <span className="opacity-70 text-[10px]">شماره شبا:</span>
-                      <span dir="ltr" className="font-mono font-medium">{options.settings?.shabaNumber || "IR..."}</span>
-                      <button type="button" onClick={() => copyToClipboard(options.settings?.shabaNumber || "")} className="ml-1"><Copy className="h-3.5 w-3.5" /></button>
+                    <div className="flex items-center justify-between text-xs sm:text-sm">
+                      <span className="opacity-75">شماره شبا:</span>
+                      <div className="flex items-center gap-1.5">
+                        <span dir="ltr" className="font-mono text-white/90 truncate">{options.settings?.shabaNumber?.trim() ? options.settings.shabaNumber : "IR..."}</span>
+                        <button type="button" onClick={() => copyToClipboard(options.settings?.shabaNumber || "")} className="shrink-0 rounded bg-white/15 p-1.5 hover:bg-white/25 transition"><Copy className="h-3.5 w-3.5" /></button>
+                      </div>
                     </div>
                   </div>
                 </div>
