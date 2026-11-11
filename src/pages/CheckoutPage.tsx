@@ -153,30 +153,41 @@ function CheckoutContent() {
                 <h3 className="mb-4 flex items-center gap-2 text-base font-bold text-burgundy-800"><CreditCard className="h-5 w-5" /> اطلاعات کارت بانکی فروشگاه</h3>
                 <p className="mb-4 text-sm leading-relaxed text-ink-700">مبلغ نهایی <b className="text-burgundy-800">{formatToman(total)}</b> را به حساب زیر واریز نمایید و سپس عکس فیش را آپلود کنید.</p>
                 <div className="relative mb-6 overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800 to-black p-5 sm:p-6 text-white shadow-xl">
-                  {/* ردیف اول: نام بانک */}
-                  <div className="flex justify-between items-center mb-6">
-                    <span className="text-sm sm:text-base font-bold opacity-90 drop-shadow-md">{options.settings?.bankName?.trim() ? options.settings.bankName : "نام بانک"}</span>
-                    <CreditCard className="h-6 w-6 opacity-50" />
-                  </div>
-                  {/* ردیف دوم: شماره کارت */}
-                  <div className="mb-6 flex flex-row items-center justify-between gap-2">
-                    <span dir="ltr" className="font-mono text-[16px] sm:text-[22px] font-bold tracking-widest drop-shadow-md break-words">{options.settings?.cardNumber ? options.settings.cardNumber.replace(/(.{4})(?!$)/g, "$1 ") : "---- ---- ---- ----"}</span>
-                    <button type="button" onClick={() => copyToClipboard(options.settings?.cardNumber || "")} className="shrink-0 flex items-center justify-center rounded-lg bg-white/15 p-2 hover:bg-white/25 transition"><Copy className="h-4 w-4 sm:h-5 sm:w-5" /></button>
-                  </div>
-                  {/* ردیف سوم: صاحب حساب و شبا */}
-                  <div className="flex flex-col gap-4 border-t border-white/15 pt-4 text-[13px] sm:text-sm">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="opacity-75 shrink-0">صاحب حساب:</span>
-                      <span className="font-bold text-end break-words">{options.settings?.accountOwner?.trim() ? options.settings.accountOwner : "ثبت نشده"}</span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <span className="opacity-75 shrink-0">شماره شبا:</span>
-                      <div className="flex items-center justify-between sm:justify-end gap-2 bg-white/10 rounded-lg p-2 sm:p-0 sm:bg-transparent">
-                        <span dir="ltr" className="font-mono text-[12px] sm:text-[14px] opacity-90 break-all">{options.settings?.shabaNumber?.trim() ? options.settings.shabaNumber : "IR..."}</span>
-                        <button type="button" onClick={() => copyToClipboard(options.settings?.shabaNumber || "")} className="shrink-0 rounded bg-white/15 p-1.5 sm:p-2 hover:bg-white/25 transition"><Copy className="h-3.5 w-3.5 sm:h-4 sm:w-4" /></button>
-                      </div>
-                    </div>
-                  </div>
+                  {(() => {
+                    const s = options.settings || {};
+                    const st = store.data || {};
+                    const bankName = s.bankName || s.bank_name || st.bankName || st.bank_name || "نام بانک";
+                    const cardNumber = s.cardNumber || s.card_number || st.cardNumber || st.card_number || "";
+                    const formattedCard = cardNumber.replace(/D/g, "").replace(/(.{4})(?!$)/g, "$1 ") || "---- ---- ---- ----";
+                    const accountOwner = s.accountOwner || s.account_owner || st.accountOwner || st.account_owner || "ثبت نشده";
+                    const shabaNumber = s.shabaNumber || s.shaba_number || st.shabaNumber || st.shaba_number || "IR...";
+
+                    return (
+                      <>
+                        <div className="flex justify-between items-center mb-6">
+                          <span className="text-sm sm:text-base font-bold opacity-90 drop-shadow-md">{bankName}</span>
+                          <CreditCard className="h-6 w-6 opacity-50" />
+                        </div>
+                        <div className="mb-6 flex flex-row items-center justify-between gap-2">
+                          <span dir="ltr" className="font-mono text-[16px] sm:text-[22px] font-bold tracking-widest drop-shadow-md break-words">{formattedCard}</span>
+                          <button type="button" onClick={() => copyToClipboard(cardNumber)} className="shrink-0 flex items-center justify-center rounded-lg bg-white/15 p-2 hover:bg-white/25 transition"><Copy className="h-4 w-4 sm:h-5 sm:w-5" /></button>
+                        </div>
+                        <div className="flex flex-col gap-4 border-t border-white/15 pt-4 text-[13px] sm:text-sm">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="opacity-75 shrink-0">صاحب حساب:</span>
+                            <span className="font-bold text-end break-words">{accountOwner}</span>
+                          </div>
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <span className="opacity-75 shrink-0">شماره شبا:</span>
+                            <div className="flex items-center justify-between sm:justify-end gap-2 bg-white/10 rounded-lg p-2 sm:p-0 sm:bg-transparent">
+                              <span dir="ltr" className="font-mono text-[12px] sm:text-[14px] opacity-90 break-all">{shabaNumber}</span>
+                              <button type="button" onClick={() => copyToClipboard(shabaNumber)} className="shrink-0 rounded bg-white/15 p-1.5 sm:p-2 hover:bg-white/25 transition"><Copy className="h-3.5 w-3.5 sm:h-4 sm:w-4" /></button>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
                 {copied && <p className="mb-4 text-xs font-bold text-success-600 text-center">با موفقیت کپی شد!</p>}
                 <div className="grid gap-4 sm:grid-cols-2">
