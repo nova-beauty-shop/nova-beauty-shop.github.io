@@ -23,8 +23,52 @@ const ONLINE_PROVIDER_DETAILS: Record<string, string> = { zarinpal: "پرداخ�
 type PaymentMethod = "card" | "online";
 
 async function loadPaymentOptions() {
-  const [settings, gateways] = await Promise.all([fetchPaymentSettings(), fetchPaymentGateways()]);
-  return { cardEnabled: settings?.cardPaymentEnabled === true && settings.cardNumber.length > 0, settings, online: gateways.filter(g => Object.keys(ONLINE_PROVIDER_DETAILS).includes(g.provider)) };
+  const [settings, gateways, rawPayRes, rawStoreRes] = await Promise.all([
+    fetchPaymentSettings(),
+    fetchPaymentGateways(),
+    supabase.from("payment_settings").select("*").maybeSingle(),
+    supabase.from("store_settings").select("*").maybeSingle(),
+  ]);
+  const merged: Record<string, any> = { ...(rawStoreRes?.data || {}), ...(rawPayRes?.data || {}), ...(settings || {}) };
+  return {
+    cardEnabled: settings?.cardPaymentEnabled === true && String(settings?.cardNumber || merged.card_number || "").length > 0,
+    settings: merged,
+    online: gateways.filter(g => Object.keys(ONLINE_PROVIDER_DETAILS).includes(g.provider)),
+  };
+}
+
+function extractBankDetails(s: Record<string, any>, st: Record<string, any>) {
+  const all: Record<string, any> = { ...(st || {}), ...(s || {}) };
+  const pick = (keys: string[], regex?: RegExp) => {
+    for (const k of keys) {
+      if (typeof all[k] === "string" && all[k].trim().length > 0) return all[k].trim();
+    }
+    if (regex) {
+      for (const [k, v] of Object.entries(all)) {
+        if (regex.test(k) && typeof v === "string" && v.trim().length > 0) return v.trim();
+      }
+    }
+    return "";
+  };
+  const bankName = pick(["bankName", "bank_name", "cardBank", "card_bank", "bank"], /bank/i) || "بلو بانک";
+  const rawCard = pick(["cardNumber", "card_number", "pan", "card"], /card.*num|pan/i);
+  const digits = rawCard.split("").filter(c => c >= "0" && c <= "9").join("");
+  const formattedCard = (digits.match(/.{1,4}/g) || []).join(" ") || rawCard || "---- ---- ---- ----";
+  const accountOwner = pick([
+    "cardHolder", "card_holder", "cardHolderName", "card_holder_name",
+    "holderName", "holder_name", "accountOwner", "account_owner",
+    "accountHolder", "account_holder", "ownerName", "owner_name",
+    "cardOwner", "card_owner", "holder", "owner"
+  ], /holder|owner/i);
+  let shabaNumber = pick([
+    "shebaNumber", "sheba_number", "shabaNumber", "shaba_number",
+    "iban", "ibanNumber", "iban_number", "sheba", "shaba",
+    "cardSheba", "card_sheba", "cardShaba", "card_shaba", "cardIban", "card_iban"
+  ], /sh[ae]ba|iban/i);
+  if (shabaNumber && !shabaNumber.toUpperCase().startsWith("IR")) {
+    shabaNumber = "IR" + shabaNumber;
+  }
+  return { bankName, rawCard: digits || rawCard, formattedCard, accountOwner, shabaNumber };
 }
 
 export default function CheckoutPage() { return <RequireAuth>{() => <CheckoutContent />}</RequireAuth>; }
@@ -58,7 +102,7 @@ function CheckoutContent() {
   const [payerName, setPayerName] = useState("");
   const [cardLast4, setCardLast4] = useState("");
   const [trackingCode, setTrackingCode] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -81,6 +125,8 @@ function CheckoutContent() {
   const paymentReady = paymentMethod === "card" ? cardFormValid : selectedProvider !== null;
   const canSubmit = !submitting && details.lines.length > 0 && addrValid && paymentReady && !promo.couponErrorMessage;
 
+  const bankInfo = extractBankDetails(options.settings || {}, store.data as any || {});
+
   function handleFile(e: any) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -89,7 +135,12 @@ function CheckoutContent() {
     reader.readAsDataURL(file);
   }
 
-  function copyToClipboard(text: string) { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); }
+  function copyToClipboard(text: string, label: string) {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopied(label);
+    setTimeout(() => setCopied(null), 2000);
+  }
 
   async function handleSubmit() {
     if (!canSubmit) return;
@@ -149,47 +200,49 @@ function CheckoutContent() {
               <PaymentOptionCard name="payment-method" value="online" checked={paymentMethod === "online"} disabled={options.online.length === 0} onSelect={() => setPaymentChoice("online")} title="پرداخت آنلاین" description={options.online.length > 0 ? "پرداخت از طریق درگاه بانکی" : "غیرفعال است"} />
             </div>
             {paymentMethod === "card" && (
-              <div className="mt-6 rounded-2xl border border-ivory-300 bg-white p-5 shadow-soft">
-                <h3 className="mb-4 flex items-center gap-2 text-base font-bold text-burgundy-800"><CreditCard className="h-5 w-5" /> اطلاعات کارت بانکی فروشگاه</h3>
-                <p className="mb-4 text-sm leading-relaxed text-ink-700">مبلغ نهایی <b className="text-burgundy-800">{formatToman(total)}</b> را به حساب زیر واریز نمایید و سپس عکس فیش را آپلود کنید.</p>
-                <div className="relative mb-6 overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800 to-black p-5 sm:p-6 text-white shadow-xl">
-                  {(() => {
-                    const s = options.settings || {};
-                    const st = store.data || {};
-                    const bankName = s.bankName || s.bank_name || st.bankName || st.bank_name || "نام بانک";
-                    const cardNumber = s.cardNumber || s.card_number || st.cardNumber || st.card_number || "";
-                    const formattedCard = cardNumber.replace(/D/g, "").replace(/(.{4})(?!$)/g, "$1 ") || "---- ---- ---- ----";
-                    const accountOwner = s.accountOwner || s.account_owner || st.accountOwner || st.account_owner || "ثبت نشده";
-                    const shabaNumber = s.shabaNumber || s.shaba_number || st.shabaNumber || st.shaba_number || "IR...";
+              <div className="mt-6 rounded-2xl border border-ivory-300 bg-white p-4 sm:p-6 shadow-soft">
+                <h3 className="mb-3 flex items-center gap-2 text-base font-bold text-burgundy-800"><CreditCard className="h-5 w-5" /> اطلاعات کارت بانکی فروشگاه</h3>
+                <p className="mb-4 text-xs sm:text-sm leading-relaxed text-ink-700">مبلغ نهایی <b className="text-burgundy-800">{formatToman(total)}</b> را به کارت زیر واریز نمایید و سپس تصویر رسید را بارگذاری کنید.</p>
 
-                    return (
-                      <>
-                        <div className="flex justify-between items-center mb-6">
-                          <span className="text-sm sm:text-base font-bold opacity-90 drop-shadow-md">{bankName}</span>
-                          <CreditCard className="h-6 w-6 opacity-50" />
+                <div className="relative mb-5 overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-zinc-900 p-4 sm:p-6 text-white shadow-xl border border-white/10">
+                  <div className="flex items-center justify-between gap-2 mb-4 pb-3 border-b border-white/10">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-block h-2.5 w-2.5 rounded-full bg-amber-400" />
+                      <span className="text-xs text-white/70">نام بانک:</span>
+                      <span className="text-sm sm:text-base font-bold text-white">{bankInfo.bankName}</span>
+                    </div>
+                    <div className="h-6 w-9 rounded-md bg-gradient-to-br from-amber-200 via-yellow-400 to-amber-600 opacity-90 shadow-inner" />
+                  </div>
+
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between text-[11px] text-white/70 mb-1.5">
+                      <span>شماره کارت ۱۶ رقمی:</span>
+                      <span>برای کپی روی شماره بزنید</span>
+                    </div>
+                    <button type="button" onClick={() => copyToClipboard(bankInfo.rawCard, "شماره کارت کپی شد")} className="w-full flex items-center justify-between gap-2 rounded-xl bg-white/10 hover:bg-white/15 active:bg-white/20 px-3 py-3 transition border border-white/15">
+                      <span className="flex items-center gap-1 rounded-lg bg-amber-400/20 text-amber-300 px-2 py-1 text-[11px] font-bold shrink-0"><Copy className="h-3.5 w-3.5" /> کپی</span>
+                      <span dir="ltr" className="font-mono text-[15px] sm:text-xl font-bold tracking-[0.12em] text-white whitespace-nowrap">{bankInfo.formattedCard}</span>
+                    </button>
+                  </div>
+
+                  <div className="space-y-2.5 pt-2 border-t border-white/10 text-xs sm:text-sm">
+                    <div className="flex items-center justify-between gap-2 rounded-xl bg-white/5 px-3 py-2.5">
+                      <span className="text-white/75 shrink-0">نام صاحب کارت:</span>
+                      <span className="font-bold text-amber-300 text-sm sm:text-base text-end">{bankInfo.accountOwner || "فروشگاه نُوا"}</span>
+                    </div>
+                    {bankInfo.shabaNumber && (
+                      <div className="rounded-xl bg-white/5 px-3 py-2.5 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-white/75 text-xs">شماره شبا:</span>
+                          <button type="button" onClick={() => copyToClipboard(bankInfo.shabaNumber, "شماره شبا کپی شد")} className="inline-flex items-center gap-1 rounded-md bg-white/10 hover:bg-white/20 px-2 py-0.5 text-[11px] text-amber-300 transition"><Copy className="h-3 w-3" /> کپی شبا</button>
                         </div>
-                        <div className="mb-6 flex flex-row items-center justify-between gap-2">
-                          <span dir="ltr" className="font-mono text-[16px] sm:text-[22px] font-bold tracking-widest drop-shadow-md break-words">{formattedCard}</span>
-                          <button type="button" onClick={() => copyToClipboard(cardNumber)} className="shrink-0 flex items-center justify-center rounded-lg bg-white/15 p-2 hover:bg-white/25 transition"><Copy className="h-4 w-4 sm:h-5 sm:w-5" /></button>
-                        </div>
-                        <div className="flex flex-col gap-4 border-t border-white/15 pt-4 text-[13px] sm:text-sm">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="opacity-75 shrink-0">صاحب حساب:</span>
-                            <span className="font-bold text-end break-words">{accountOwner}</span>
-                          </div>
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                            <span className="opacity-75 shrink-0">شماره شبا:</span>
-                            <div className="flex items-center justify-between sm:justify-end gap-2 bg-white/10 rounded-lg p-2 sm:p-0 sm:bg-transparent">
-                              <span dir="ltr" className="font-mono text-[12px] sm:text-[14px] opacity-90 break-all">{shabaNumber}</span>
-                              <button type="button" onClick={() => copyToClipboard(shabaNumber)} className="shrink-0 rounded bg-white/15 p-1.5 sm:p-2 hover:bg-white/25 transition"><Copy className="h-3.5 w-3.5 sm:h-4 sm:w-4" /></button>
-                            </div>
-                          </div>
-                        </div>
-                      </>
-                    );
-                  })()}
+                        <div dir="ltr" className="font-mono text-[11px] sm:text-[13px] font-medium tracking-wider text-white/95 text-center whitespace-nowrap overflow-x-auto py-0.5">{bankInfo.shabaNumber}</div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                {copied && <p className="mb-4 text-xs font-bold text-success-600 text-center">با موفقیت کپی شد!</p>}
+
+                {copied && <p className="mb-4 rounded-xl bg-success-100 py-2 text-xs font-bold text-success-600 text-center">✓ {copied}</p>}
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div><label className="block text-xs font-bold text-ink-700 mb-1">نام صاحب حسابی که از آن واریز کردید</label><input type="text" value={payerName} onChange={e=>setPayerName(e.target.value)} className="field" placeholder="مثلاً مریم حسینی" /></div>
                   <div><label className="block text-xs font-bold text-ink-700 mb-1">۴ رقم آخر کارت شما</label><input type="text" dir="ltr" maxLength={4} value={cardLast4} onChange={e=>setCardLast4(e.target.value)} className="field text-start" placeholder="1234" /></div>
