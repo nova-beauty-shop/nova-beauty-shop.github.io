@@ -106,7 +106,7 @@ function CheckoutContent() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  if (cart.length === 0) return <div data-build="1794423744049" className="container-nova py-12"><EmptyState title="سبد خرید شما خالی است" description="محصولی به سبد خرید اضافه کنید." action={<Link to="/shop" className="btn-primary">فروشگاه</Link>} /></div>;
+  if (cart.length === 0) return <div data-build="1794423905976" className="container-nova py-12"><EmptyState title="سبد خرید شما خالی است" description="محصولی به سبد خرید اضافه کنید." action={<Link to="/shop" className="btn-primary">فروشگاه</Link>} /></div>;
   if (details.error || store.error || paymentOptions.error) return <div className="container-nova py-12"><ErrorState onRetry={store.retry} /></div>;
   if (details.loading || !store.data || !paymentOptions.data) return <div className="container-nova py-12"><SkeletonGrid count={2} /></div>;
 
@@ -219,9 +219,9 @@ function CheckoutContent() {
                       <span>شماره کارت ۱۶ رقمی:</span>
                       <span>برای کپی روی شماره بزنید</span>
                     </div>
-                    <button type="button" onClick={() => copyToClipboard(bankInfo.rawCard, "شماره کارت کپی شد")} className="w-full flex items-center justify-between gap-2 rounded-xl bg-white/10 hover:bg-white/15 active:bg-white/20 px-3 py-3 transition border border-white/15">
-                      <span className="flex items-center gap-1 rounded-lg bg-amber-400/20 text-amber-300 px-2 py-1 text-[11px] font-bold shrink-0"><Copy className="h-3.5 w-3.5" /> کپی</span>
-                      <span dir="ltr" className="font-mono text-[15px] sm:text-xl font-bold tracking-[0.12em] text-white whitespace-nowrap">{bankInfo.formattedCard}</span>
+                    <button type="button" onClick={() => copyToClipboard(bankInfo.rawCard, "شماره کارت کپی شد")} className="w-full flex items-center justify-between gap-2 rounded-xl bg-white/10 hover:bg-white/15 active:bg-white/20 px-2.5 py-2.5 sm:px-3.5 sm:py-3 transition border border-white/15">
+                      <span className="flex items-center gap-1 rounded-lg bg-amber-400/20 text-amber-300 px-2 py-1 text-[10px] sm:text-xs font-bold shrink-0"><Copy className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> کپی</span>
+                      <span dir="ltr" className="font-mono text-[12.5px] sm:text-xl font-bold tracking-[0.03em] sm:tracking-[0.12em] text-white whitespace-nowrap text-center flex-1">{bankInfo.formattedCard}</span>
                     </button>
                   </div>
 
