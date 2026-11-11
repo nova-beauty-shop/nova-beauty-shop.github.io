@@ -58,7 +58,7 @@ function extractBankDetails(s: Record<string, any>, st: Record<string, any>) {
     "cardHolder", "card_holder", "cardHolderName", "card_holder_name",
     "holderName", "holder_name", "accountOwner", "account_owner",
     "accountHolder", "account_holder", "ownerName", "owner_name",
-    "cardOwner", "card_owner", "holder", "owner"
+    "cardOwner", "card_owner", "accountName", "account_name", "cardName", "card_name", "holder", "owner"
   ], /holder|owner/i);
   let shabaNumber = pick([
     "shebaNumber", "sheba_number", "shabaNumber", "shaba_number",
@@ -106,7 +106,7 @@ function CheckoutContent() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  if (cart.length === 0) return <div className="container-nova py-12"><EmptyState title="سبد خرید شما خالی است" description="محصولی به سبد خرید اضافه کنید." action={<Link to="/shop" className="btn-primary">فروشگاه</Link>} /></div>;
+  if (cart.length === 0) return <div data-build="1794423744049" className="container-nova py-12"><EmptyState title="سبد خرید شما خالی است" description="محصولی به سبد خرید اضافه کنید." action={<Link to="/shop" className="btn-primary">فروشگاه</Link>} /></div>;
   if (details.error || store.error || paymentOptions.error) return <div className="container-nova py-12"><ErrorState onRetry={store.retry} /></div>;
   if (details.loading || !store.data || !paymentOptions.data) return <div className="container-nova py-12"><SkeletonGrid count={2} /></div>;
 
