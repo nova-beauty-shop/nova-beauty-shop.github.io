@@ -25,10 +25,6 @@ export interface DynamicShippingQuote {
   countySurchargeToman: number;
 }
 
-// منطقه‌بندی رسمی پست ایران در سال ۱۴۰۵ (۲۰۲۶) با مبدأ مشهد (استان خراسان رضوی)
-// zone 1: درون‌استانی (خراسان رضوی)
-// zone 2: برون‌استانی همجوار با خراسان رضوی (خراسان شمالی، خراسان جنوبی، سمنان، یزد)
-// zone 3: برون‌استانی غیرهمجوار (سایر استان‌های کشور)
 export const IRAN_PROVINCES: { province: string; capital: string; zone: 1 | 2 | 3; metroSurcharge?: boolean }[] = [
   { province: "خراسان رضوی", capital: "مشهد", zone: 1 },
   { province: "خراسان شمالی", capital: "بجنورد", zone: 2 },
@@ -64,11 +60,7 @@ export const IRAN_PROVINCES: { province: string; capital: string; zone: 1 | 2 | 
 ];
 
 type Row = Record<string, unknown>;
-
-function asString(value: unknown): string {
-  return typeof value === "string" ? value : "";
-}
-
+function asString(value: unknown): string { return typeof value === "string" ? value : ""; }
 function asNumber(value: unknown): number {
   const parsed = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(parsed)) throw new Error("unexpected store settings response");
@@ -103,21 +95,14 @@ export function calculateDynamicShipping(params: {
   settings: StoreSettings;
 }): DynamicShippingQuote {
   const { province, city, subtotalToman, itemCount = 1, settings } = params;
-
-  // نرخ‌های رسمی سال ۱۴۰۵ (۲۰۲۶) از مبدأ مشهد (خراسان رضوی)
   const freeThreshold = settings.courierFreeThresholdToman >= 1000000 ? settings.courierFreeThresholdToman : 2000000;
-  const mashhadBase = settings.courierFeeToman >= 70000 ? settings.courierFeeToman : 80000; // درون‌استانی خراسان رضوی / مشهد
-  const nonAdjacentBase = settings.postFeeToman >= 105000 ? settings.postFeeToman : 115000; // برون‌استانی غیرهمجوار
-  const adjacentBase = Math.round((mashhadBase + nonAdjacentBase) / 2 / 1000) * 1000; // حدود ۹۸,۰۰۰ تومان برای استان‌های همجوار خراسان رضوی
+  const mashhadBase = settings.courierFeeToman >= 70000 ? settings.courierFeeToman : 80000;
+  const nonAdjacentBase = settings.postFeeToman >= 105000 ? settings.postFeeToman : 115000;
+  const adjacentBase = Math.round((mashhadBase + nonAdjacentBase) / 2 / 1000) * 1000;
 
   const cleanProvince = (province ?? "").trim();
   const cleanCity = (city ?? "").trim();
-
-  const matched = IRAN_PROVINCES.find(
-    (p) => cleanProvince.includes(p.province) || p.province.includes(cleanProvince)
-  );
-
-  // تشخیص مستقیم شهر مشهد حتی اگر نام استان به شکل دیگری نوشته شده باشد
+  const matched = IRAN_PROVINCES.find((p) => cleanProvince.includes(p.province) || p.province.includes(cleanProvince));
   const isMashhadCity = cleanCity.includes("مشهد");
   const zone: 1 | 2 | 3 = isMashhadCity ? 1 : !cleanProvince ? 3 : matched ? matched.zone : 3;
 
@@ -133,47 +118,41 @@ export function calculateDynamicShipping(params: {
       etaLabel = "۱ روز کاری";
       countySurchargeToman = 0;
     } else {
-      zoneLabel = `درون‌استانی خراسان رضوی (مبدأ مشهد ← ${cleanCity})`;
+      zoneLabel = "درون‌استانی خراسان رضوی (مشهد به " + cleanCity + ")";
       etaLabel = "۱ تا ۲ روز کاری";
       countySurchargeToman = 12000;
     }
   } else if (zone === 2) {
     baseFeeToman = adjacentBase;
-    zoneLabel = `برون‌استانی همجوار با خراسان رضوی (${cleanProvince})`;
+    zoneLabel = "استان همجوار با خراسان رضوی (" + cleanProvince + ")";
     etaLabel = "۲ تا ۳ روز کاری";
     if (cleanCity && matched && !cleanCity.includes(matched.capital) && !matched.capital.includes(cleanCity)) {
       countySurchargeToman = 15000;
     }
   } else {
     baseFeeToman = nonAdjacentBase;
-    zoneLabel = `پست پیشتاز از مشهد به ${cleanProvince || "سراسر کشور"} (غیرهمجوار)`;
+    zoneLabel = "پست پیشتاز از مشهد به " + (cleanProvince || "سراسر کشور");
     etaLabel = "۳ تا ۵ روز کاری";
     if (matched?.metroSurcharge) {
-      countySurchargeToman = 15000; // اضافه‌نرخ رسمی توزیع کلان‌شهرهای تهران و البرز در نرخنامه ۱۴۰۵
+      countySurchargeToman = 15000;
     } else if (cleanCity && matched && !cleanCity.includes(matched.capital) && !matched.capital.includes(cleanCity)) {
-      countySurchargeToman = 15000; // اضافه‌نرخ رهسپاری شهرستان‌های غیرمرکز استان
+      countySurchargeToman = 15000;
     }
   }
 
-  // ضریب وزن، ابعاد بسته و مایعات/شکستنی لوازم آرایشی در نرخنامه ۱۴۰۵ (مازاد بر ۲ قلم کالا: هر قلم ۱۵,۰۰۰ تومان)
   const extraItems = Math.max(0, itemCount - 2);
   const weightSurchargeToman = Math.min(90000, extraItems * 15000);
-
   const rawTotalFee = baseFeeToman + countySurchargeToman + weightSurchargeToman;
   const isFree = subtotalToman >= freeThreshold;
   const feeToman = isFree ? 0 : rawTotalFee;
   const remainingForFreeToman = Math.max(0, freeThreshold - subtotalToman);
 
-  const parts: string[] = [`نرخ پایه از مشهد: ${formatToman(baseFeeToman)}`];
+  const parts: string[] = ["پایه از مبدأ مشهد: " + formatToman(baseFeeToman)];
   if (countySurchargeToman > 0) {
-    parts.push(
-      matched?.metroSurcharge
-        ? `توزیع کلان‌شهر (${cleanCity || cleanProvince}): +${formatToman(countySurchargeToman)}`
-        : `توزیع شهرستان (${cleanCity}): +${formatToman(countySurchargeToman)}`
-    );
+    parts.push((matched?.metroSurcharge ? "توزیع کلان‌شهر: +" : "رهسپاری شهرستان: +") + formatToman(countySurchargeToman));
   }
   if (weightSurchargeToman > 0) {
-    parts.push(`وزن و بسته‌بندی (${itemCount.toLocaleString("fa-IR")} کالا): +${formatToman(weightSurchargeToman)}`);
+    parts.push("وزن و بسته‌بندی (" + itemCount.toLocaleString("fa-IR") + " کالا): +" + formatToman(weightSurchargeToman));
   }
 
   return {
