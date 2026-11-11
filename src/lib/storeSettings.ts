@@ -95,7 +95,7 @@ export function calculateDynamicShipping(params: {
   settings: StoreSettings;
 }): DynamicShippingQuote {
   const { province, city, subtotalToman, itemCount = 1, settings } = params;
-  const freeThreshold = settings.courierFreeThresholdToman >= 1000000 ? settings.courierFreeThresholdToman : 2000000;
+  const freeThreshold = settings.courierFreeThresholdToman;
   const mashhadBase = settings.courierFeeToman >= 70000 ? settings.courierFeeToman : 80000;
   const nonAdjacentBase = settings.postFeeToman >= 105000 ? settings.postFeeToman : 115000;
   const adjacentBase = Math.round((mashhadBase + nonAdjacentBase) / 2 / 1000) * 1000;
@@ -143,7 +143,7 @@ export function calculateDynamicShipping(params: {
   const extraItems = Math.max(0, itemCount - 2);
   const weightSurchargeToman = Math.min(90000, extraItems * 15000);
   const rawTotalFee = baseFeeToman + countySurchargeToman + weightSurchargeToman;
-  const isFree = subtotalToman >= freeThreshold;
+  const isFree = freeThreshold > 0 && subtotalToman >= freeThreshold;
   const feeToman = isFree ? 0 : rawTotalFee;
   const remainingForFreeToman = Math.max(0, freeThreshold - subtotalToman);
 
@@ -187,7 +187,7 @@ export function estimateDeliveryFee(
 }
 
 export function fillStoreTokens(text: string, settings: StoreSettings): string {
-  const threshold = settings.courierFreeThresholdToman >= 1000000 ? settings.courierFreeThresholdToman : 2000000;
+  const threshold = settings.courierFreeThresholdToman;
   return text
     .split("{{freeShippingThreshold}}").join(formatToman(threshold))
     .split("{{supportPhone}}").join(settings.supportPhone || "به‌زودی")

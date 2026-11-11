@@ -6,9 +6,7 @@ import { fetchAdminPendingCounts } from "@/lib/adminOrders";
 
 const ADMIN_LINKS = [
   { label: "داشبورد", to: "/admin", icon: LayoutDashboard },
-  { label: "سفارش‌ها", to: "/admin/orders", icon: ShoppingBag, badgeKey: "orders" as const },
-  { label: "بررسی پرداخت‌ها", to: "/admin/payments", icon: Receipt, badgeKey: "receipts" as const },
-  { label: "مشتریان", to: "/admin/customers", icon: Users },
+  { label: "سفارش‌ها، آدرس و فیش‌ها", to: "/admin/orders", icon: ShoppingBag, badgeKey: "orders" as const },
   { label: "درگاه‌های پرداخت", to: "/admin/gateways", icon: CreditCard },
   { label: "محتوای فروشگاه", to: "/admin/content", icon: Store },
   { label: "صفحات راهنما", to: "/admin/pages", icon: FileText },

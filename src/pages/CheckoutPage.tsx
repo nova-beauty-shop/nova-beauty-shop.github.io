@@ -154,7 +154,7 @@ function CheckoutContent() {
                     </div>
                   </div>
                   <div className="text-end">
-                    {shippingQuote.isFree ? (
+                    {shippingQuote.freeThresholdToman === 0 ? null : shippingQuote.isFree ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-success-100 px-3 py-1 text-xs font-bold text-success-600"><CheckCircle2 className="h-3.5 w-3.5" /> ارسال رایگان</span>
                     ) : (
                       <span className="text-sm font-bold text-burgundy-800">{formatToman(shippingQuote.feeToman)}</span>
@@ -162,7 +162,7 @@ function CheckoutContent() {
                   </div>
                 </div>
                 <div className="mt-3.5 border-t border-ivory-300 pt-3">
-                  {shippingQuote.isFree ? (
+                  {shippingQuote.freeThresholdToman === 0 ? null : shippingQuote.isFree ? (
                     <p className="flex items-center gap-1.5 text-xs font-bold text-success-600"><CheckCircle2 className="h-4 w-4 shrink-0" /> خرید شما بالای {formatToman(shippingQuote.freeThresholdToman)} است و ارسال به {selectedAddress.city} رایگان شد!</p>
                   ) : (
                     <div className="space-y-1.5">
