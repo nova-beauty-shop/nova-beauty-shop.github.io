@@ -77,17 +77,32 @@ export interface CardBackground {
  * Turns the stored background settings into a CSS class and inline style. Every stored value is
  * validated here, so a malformed row can never inject arbitrary CSS.
  */
-export function cardBackground(type: CardBgType, value: string | null): CardBackground {
-  if (type === 'preset' && isPresetKey(value)) return { className: `card-bg-${value}`, style: {} };
-  if (type === 'image' && isHttpsUrl(value)) {
+export function cardBackground(value: string | null | undefined): {
+  className: string;
+  style?: { backgroundColor?: string; backgroundImage?: string };
+} {
+  const trimmed = (value ?? "").trim();
+  if (/^#[0-9a-fA-F]{3,8}$/i.test(trimmed)) {
+    return { className: "", style: { backgroundColor: trimmed } };
+  }
+  if ((CARD_BG_PRESETS as readonly string[]).includes(trimmed)) {
+    return { className: "card-bg-" + trimmed };
+  }
+  if (trimmed.startsWith("image:") || trimmed.startsWith("url:")) {
+    const prefixLen = trimmed.indexOf(":") + 1;
+    const rawUrl = trimmed.slice(prefixLen).trim();
+    const badChars = [32, 9, 10, 13, 34, 39, 40, 41, 92, 60, 62, 96].map(c => String.fromCharCode(c));
+    if (!rawUrl.startsWith("https://") || badChars.some(c => rawUrl.includes(c))) {
+      return { className: "", style: { backgroundColor: DEFAULT_CARD_BG } };
+    }
+    const safe = shieldImageUrl(rawUrl);
+    if (!safe) return { className: "", style: { backgroundColor: DEFAULT_CARD_BG } };
     return {
-      className: 'bg-cover bg-center',
-      style: { backgroundImage: `url("${value}")` },
+      className: "bg-cover bg-center",
+      style: { backgroundImage: "url(" + String.fromCharCode(34) + safe + String.fromCharCode(34) + ")" },
     };
   }
-  if (type === 'color' && isHexColor(value)) return { className: '', style: { backgroundColor: value } };
-  return { className: '', style: { backgroundColor: DEFAULT_CARD_BG } };
-}
+  return { className: "", style: { backgroundColor: DEFAULT_CARD_BG } };}
 
 export function productCardBackground(product: Pick<Product, 'cardBgType' | 'cardBgValue'>): CardBackground {
   return cardBackground(product.cardBgType, product.cardBgValue);
