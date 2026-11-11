@@ -306,3 +306,14 @@ footer,
 section {
   max-width: 100vw;
 }
+
+/* nova-clean-mobile-rules */
+@media (max-width: 640px) {
+  section.relative.overflow-hidden a.bg-white,
+  section.relative.overflow-hidden .inline-flex.rounded-full {
+    width: auto !important;
+    max-width: max-content !important;
+    display: inline-flex !important;
+    flex: none !important;
+  }
+}

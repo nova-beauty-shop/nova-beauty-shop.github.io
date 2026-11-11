@@ -7,6 +7,7 @@ import Link from '@/components/common/Link';
 import { EmptyState, ErrorState, SkeletonGrid } from '@/components/common/StateViews';
 import { useAsync } from '@/hooks/useAsync';
 import { ORDER_STATUS_LABELS } from '@/lib/orderLabels';
+import { advanceOrderStatusTo } from '@/lib/adminOrders';
 import { formatDate, formatToman } from '@/lib/format';
 import {
   fetchReceiptRecords,
@@ -113,6 +114,9 @@ function ReceiptCard({ receipt, onReviewed }: { receipt: ReceiptRecord; onReview
     setError(null);
     try {
       await reviewReceipt(receipt.id, approve, approve ? '' : trimmedNote);
+      if (approve) {
+        await advanceOrderStatusTo(receipt.orderId, 'paid', 'preparing', 'سفارش شما ثبت و تأیید شد و آماده ارسال است.', '');
+      }
       onReviewed();
     } catch {
       setError('ثبت نتیجه بررسی انجام نشد. لطفاً دوباره تلاش کنید.');
