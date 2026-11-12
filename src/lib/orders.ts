@@ -153,3 +153,5 @@ export async function fetchOrder(id: string): Promise<OrderDetail | null> {
   if (!data) return null;
   return toDetail(data as unknown as Row);
 }
+
+export const fetchUserOrders = fetchOrders;
