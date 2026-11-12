@@ -106,7 +106,7 @@ function CheckoutContent() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  if (cart.length === 0) return <div data-build="1794496033716" className="container-nova py-12"><EmptyState title="سبد خرید شما خالی است" description="محصولی به سبد خرید اضافه کنید." action={<Link to="/shop" className="btn-primary">فروشگاه</Link>} /></div>;
+  if (cart.length === 0) return <div data-build="1794496223096" className="container-nova py-12"><EmptyState title="سبد خرید شما خالی است" description="محصولی به سبد خرید اضافه کنید." action={<Link to="/shop" className="btn-primary">فروشگاه</Link>} /></div>;
   if (details.error || store.error || paymentOptions.error) return <div className="container-nova py-12"><ErrorState onRetry={store.retry} /></div>;
   if (details.loading || !store.data || !paymentOptions.data) return <div className="container-nova py-12"><SkeletonGrid count={2} /></div>;
 
@@ -158,7 +158,7 @@ function CheckoutContent() {
         const ext = blob.type.split("/")[1] || "png";
         const path = "receipts/" + orderId + "-" + Date.now() + "." + ext;
         await supabase.storage.from("receipts").upload(path, blob);
-        await supabase.from("payment_receipts").insert({ order_id: orderId, amount_toman: total, payer_name: payerName, card_last4: cardLast4, tracking_code: trackingCode, storage_path: path, status: "uploaded" });
+        await supabase.from("payment_receipts").insert({ order_id: orderId, amount_toman: total, payer_name: payerName, card_last4: cardLast4, tracking_code: trackingCode, storage_path: path, status: "pending" });
       } else if (selectedProvider) {
         await startOnlinePayment(orderId, selectedProvider, 1); return;
       }
