@@ -107,7 +107,7 @@ function CheckoutContent() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  if (cart.length === 0) return <div data-build="1794496622779" className="container-nova py-12"><EmptyState title="سبد خرید شما خالی است" description="محصولی به سبد خرید اضافه کنید." action={<Link to="/shop" className="btn-primary">فروشگاه</Link>} /></div>;
+  if (cart.length === 0) return <div data-build="1794497213141" className="container-nova py-12"><EmptyState title="سبد خرید شما خالی است" description="محصولی به سبد خرید اضافه کنید." action={<Link to="/shop" className="btn-primary">فروشگاه</Link>} /></div>;
   if (details.error || store.error || paymentOptions.error) return <div className="container-nova py-12"><ErrorState onRetry={store.retry} /></div>;
   if (details.loading || !store.data || !paymentOptions.data) return <div className="container-nova py-12"><SkeletonGrid count={2} /></div>;
 
@@ -167,7 +167,7 @@ function CheckoutContent() {
       }
       clearCart(); navigate("/account/orders?success=true", { replace: true });
     } catch (err: any) {
-      setSubmitError(orderErrorMessage(err instanceof OrderError ? err.code : "") || err.message || "خطایی رخ داد.");
+      setSubmitError(err.message || orderErrorMessage(err instanceof OrderError ? err.code : ""));
       setSubmitting(false);
     }
   }
