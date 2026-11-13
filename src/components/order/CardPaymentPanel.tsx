@@ -1,11 +1,12 @@
-import { AlertCircle, CheckCircle, Clock } from 'lucide-react';
-import StatusBox from '@/components/common/StatusBox';
-import { ErrorState, SkeletonGrid } from '@/components/common/StateViews';
-import BankCardDetails from '@/components/order/BankCardDetails';
-import ReceiptUploadForm from '@/components/order/ReceiptUploadForm';
-import { useAsync } from '@/hooks/useAsync';
-import type { OrderDetail } from '@/lib/orders';
-import { fetchOrderReceipts, fetchPaymentSettings } from '@/lib/payments';
+import { AlertCircle, CheckCircle, Clock, Receipt } from "lucide-react";
+import StatusBox from "@/components/common/StatusBox";
+import { ErrorState, SkeletonGrid } from "@/components/common/StateViews";
+import ReceiptPreview from "@/components/admin/payments/ReceiptPreview";
+import BankCardDetails from "@/components/order/BankCardDetails";
+import ReceiptUploadForm from "@/components/order/ReceiptUploadForm";
+import { useAsync } from "@/hooks/useAsync";
+import type { OrderDetail } from "@/lib/orders";
+import { fetchOrderReceipts, fetchPaymentSettings } from "@/lib/payments";
 
 interface CardPaymentPanelProps {
   order: OrderDetail;
@@ -23,25 +24,42 @@ export default function CardPaymentPanel({ order, userId, onChanged }: CardPayme
   if (data.error || !data.data) return <ErrorState onRetry={data.retry} />;
 
   const { settings, receipts } = data.data;
+  const activeReceipt = receipts.find((r) => r.status === "approved" || r.status === "pending") ?? null;
 
-  if (order.status === 'paid') {
+  if (order.status === "paid" || activeReceipt?.status === "approved") {
     return (
-      <StatusBox tone="success" icon={CheckCircle} title="پرداخت شما تأیید شد">
-        سفارش شما در صف آماده‌سازی قرار گرفت.
-      </StatusBox>
+      <div className="space-y-4">
+        <StatusBox tone="success" icon={CheckCircle} title="پرداخت شما تأیید شد">
+          سفارش شما در صف آماده‌سازی قرار گرفت.
+        </StatusBox>
+        {activeReceipt?.storagePath && (
+          <div className="rounded-3xl border border-ivory-300 bg-ivory-50 p-5 shadow-soft">
+            <p className="mb-3 flex items-center gap-2 text-sm font-bold text-ink-900"><Receipt className="h-4 w-4 text-burgundy-700" /> تصویر فیش تأییدشده شما:</p>
+            <div className="max-w-xs"><ReceiptPreview storagePath={activeReceipt.storagePath} /></div>
+          </div>
+        )}
+      </div>
     );
   }
 
-  if (order.status === 'pending_review') {
+  if (order.status === "pending_review" || activeReceipt?.status === "pending") {
     return (
-      <StatusBox tone="info" icon={Clock} title="رسید شما دریافت شد">
-        رسید پرداخت در انتظار بررسی است. پس از تأیید، وضعیت سفارش به‌روز می‌شود.
-      </StatusBox>
+      <div className="space-y-4">
+        <StatusBox tone="info" icon={Clock} title="فیش پرداخت شما ثبت شد و در انتظار بررسی است">
+          تصویر فیش و مشخصات واریز شما برای مدیریت ارسال شده است و پس از تأیید، وضعیت سفارش به‌روز می‌شود.
+        </StatusBox>
+        {activeReceipt?.storagePath && (
+          <div className="rounded-3xl border border-ivory-300 bg-ivory-50 p-5 shadow-soft">
+            <p className="mb-3 flex items-center gap-2 text-sm font-bold text-ink-900"><Receipt className="h-4 w-4 text-burgundy-700" /> تصویر فیش واریزی ارسالی شما:</p>
+            <div className="max-w-xs"><ReceiptPreview storagePath={activeReceipt.storagePath} /></div>
+          </div>
+        )}
+      </div>
     );
   }
 
   const lastReceipt = receipts[0];
-  const rejectedNote = lastReceipt?.status === 'rejected' ? lastReceipt : null;
+  const rejectedNote = lastReceipt?.status === "rejected" ? lastReceipt : null;
 
   return (
     <section className="space-y-8 rounded-3xl border border-ivory-300 bg-ivory-50 p-6 shadow-soft md:p-8">
@@ -60,7 +78,7 @@ export default function CardPaymentPanel({ order, userId, onChanged }: CardPayme
 
           {rejectedNote && (
             <StatusBox tone="error" icon={AlertCircle} title="رسید قبلی تأیید نشد">
-              {rejectedNote.reviewNote || 'لطفاً رسید صحیح پرداخت را دوباره بارگذاری کنید.'}
+              {rejectedNote.reviewNote || "لطفاً رسید صحیح پرداخت را دوباره بارگذاری کنید."}
             </StatusBox>
           )}
 

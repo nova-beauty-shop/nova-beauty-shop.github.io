@@ -13,7 +13,7 @@ import { navigate } from "@/lib/navigation";
 import { OrderError, placeOrder } from "@/lib/orders";
 import { orderErrorMessage } from "@/lib/orderLabels";
 import { fetchPaymentGateways } from "@/lib/paymentGateways";
-import { fetchPaymentSettings } from "@/lib/payments";
+import { fetchPaymentSettings, uploadReceipt, PaymentError } from "@/lib/payments";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { supabase } from "@/lib/supabase";
 import { normalizeDigits } from "@/lib/digits";
@@ -265,54 +265,26 @@ function CheckoutContent() {
       });
 
       if (receiptBase64 && receiptBlob) {
-        const ts = Date.now();
-        const candidatePaths = [
-          userId + "/" + orderId + "/" + ts + ".jpg",
-          userId + "/" + ts + "-" + orderId + ".jpg",
-          orderId + "/" + ts + ".jpg",
-        ];
-        let finalStoragePath = "";
-        for (const p of candidatePaths) {
-          const { error: upErr } = await supabase.storage.from("payment-receipts").upload(p, receiptBlob, { contentType: "image/jpeg", upsert: false });
-          if (!upErr) { finalStoragePath = p; break; }
-        }
-        if (!finalStoragePath) {
-          const catPath = "receipts/" + orderId + "-" + ts + ".jpg";
-          const { error: catErr } = await supabase.storage.from("catalog-media").upload(catPath, receiptBlob, { contentType: "image/jpeg", upsert: false });
-          if (!catErr) { finalStoragePath = catPath; }
-        }
-        if (!finalStoragePath) {
-          finalStoragePath = receiptBase64;
-        }
-        try {
-          localStorage.setItem("nova_receipt_order_" + orderId, receiptBase64);
-          localStorage.setItem("nova_receipt_path_" + finalStoragePath, receiptBase64);
-        } catch {}
-
         const cleanLast4 = onlyDigits(cardLast4);
         const cleanTrack = trackingCode.trim();
-        const receiptPayload: Record<string, any> = {
-          order_id: orderId,
-          user_id: userId,
-          amount_toman: total,
-          payer_name: payerName.trim(),
-          card_last4: cleanLast4.length === 4 ? cleanLast4 : null,
-          bank_name: bankName,
-          tracking_code: cleanTrack.length >= 2 ? cleanTrack : null,
-          storage_path: finalStoragePath,
-          status: "pending",
-        };
-        const { error: insErr } = await supabase.from("payment_receipts").insert(receiptPayload);
-        if (insErr) {
-          delete receiptPayload.user_id;
-          await supabase.from("payment_receipts").insert(receiptPayload);
-        }
+        const safeTrackingCode = cleanTrack.length >= 3 ? cleanTrack : ("CARD-" + cleanLast4 + "-" + String(Date.now()).slice(-4));
+        const receiptFileObj = new File([receiptBlob], "receipt-" + Date.now() + ".jpg", { type: "image/jpeg" });
+        await uploadReceipt(orderId, userId, receiptFileObj, {
+          payerName: payerName.trim(),
+          cardLast4: cleanLast4,
+          bankName: bankName,
+          trackingCode: safeTrackingCode,
+        });
+        try {
+          localStorage.setItem("nova_receipt_order_" + orderId, receiptBase64);
+        } catch {}
       }
-
       clearCart();
       navigate("/account/orders?success=true", { replace: true });
     } catch (err: any) {
-      setSubmitError(err?.message || orderErrorMessage(err instanceof OrderError ? err.code : ""));
+      const code = err instanceof PaymentError ? err.code : err instanceof OrderError ? err.code : "";
+      const payErrors: Record<string, string> = { receipt_already_submitted: "رسید این سفارش قبلاً ثبت شده است.", order_not_payable: "این سفارش قابل پرداخت نیست.", card_payment_disabled: "پرداخت کارت به کارت غیرفعال است.", invalid_request: "اطلاعات فیش یا شماره پیگیری معتبر نیست." };
+      setSubmitError(payErrors[code] || err?.message || orderErrorMessage(code));
       setSubmitting(false);
     }
   }
