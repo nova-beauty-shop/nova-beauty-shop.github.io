@@ -1,14 +1,16 @@
-import { CheckCircle2, Clock, PackageCheck, Truck } from "lucide-react";
+import { CheckCircle2, Clock, PackageCheck, Truck, Receipt } from "lucide-react";
 import RequireAuth from "@/components/account/RequireAuth";
 import CardPaymentPanel from "@/components/order/CardPaymentPanel";
 import OnlinePaymentPanel from "@/components/order/OnlinePaymentPanel";
+import ReceiptPreview from "@/components/admin/payments/ReceiptPreview";
 import Link from "@/components/common/Link";
 import { ErrorState, SkeletonGrid } from "@/components/common/StateViews";
 import { useAsync } from "@/hooks/useAsync";
+import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { formatDate, formatToman } from "@/lib/format";
 import { fetchOrder, type OrderStatus } from "@/lib/orders";
+import { fetchOrderReceipts } from "@/lib/payments";
 import { DELIVERY_LABELS, ORDER_STATUS_LABELS } from "@/lib/orderLabels";
-import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { resolveOrderDynamicTotals } from "@/lib/storeSettings";
 
 const PAYABLE_STATUSES: OrderStatus[] = ["awaiting_payment", "pending_review", "paid"];
@@ -33,7 +35,7 @@ function getCustomerStatusBanner(status: OrderStatus, trackingCode: string | nul
     case "processing":
     case "preparing":
       return {
-        title: "سفارش شما ثبت و تأیید شد و آماده ارسال است!",
+        title: "سفارش شما ثبت و تأیید شد و آماده ارسال است! ✓",
         desc: "پرداخت شما با موفقیت تأیید گردید. سفارش شما در حال بسته‌بندی و تحویل به واحد ارسال است.",
         tone: "bg-success-100 border-success-600/30 text-success-600",
         step: 2,
@@ -42,7 +44,7 @@ function getCustomerStatusBanner(status: OrderStatus, trackingCode: string | nul
       return {
         title: "سفارش شما ارسال شد!",
         desc: trackingCode
-          ? `بسته شما ارسال شده است. کد رهگیری مرسوله: ${trackingCode}`
+          ? "بسته شما از مبدأ مشهد ارسال شده است. کد رهگیری مرسوله: " + trackingCode
           : "بسته شما تحویل واحد ارسال شده و در مسیر رسیدن به دست شماست.",
         tone: "bg-success-100 border-success-600/30 text-success-600",
         step: 3,
@@ -65,6 +67,8 @@ export default function OrderPage({ id }: { id: string }) {
 
 function OrderContent({ id, userId }: { id: string; userId: string }) {
   const order = useAsync(() => fetchOrder(id), [id]);
+  const receiptsAsync = useAsync(() => fetchOrderReceipts(id), [id]);
+  const store = useStoreSettings();
 
   if (order.loading) {
     return (
@@ -94,9 +98,26 @@ function OrderContent({ id, userId }: { id: string; userId: string }) {
     );
   }
 
-  const data = order.data;
-  const totalItemCount = data.items.reduce((sum, it) => sum + it.quantity, 0);
-  const dynamicPricing = resolveOrderDynamicTotals({ province: data.province, city: data.city, subtotalToman: data.subtotalToman, dbDeliveryFeeToman: data.deliveryFeeToman, dbTotalToman: data.totalToman, itemCount: totalItemCount, freeThreshold: store.data?.courierFreeThresholdToman ?? 2000000 });
+  const rawData = order.data;
+  const totalItemCount = rawData.items.reduce((sum, it) => sum + it.quantity, 0);
+  const dynamicPricing = resolveOrderDynamicTotals({
+    province: rawData.province,
+    city: rawData.city,
+    subtotalToman: rawData.subtotalToman,
+    dbDeliveryFeeToman: rawData.deliveryFeeToman,
+    dbTotalToman: rawData.totalToman,
+    itemCount: totalItemCount,
+    freeThreshold: store.data?.courierFreeThresholdToman ?? 2000000,
+  });
+
+  const data = {
+    ...rawData,
+    deliveryFeeToman: dynamicPricing.deliveryFeeToman,
+    totalToman: dynamicPricing.totalToman,
+  };
+
+  const receipts = receiptsAsync.data || [];
+  const activeReceipt = receipts[0] || null;
   const banner = getCustomerStatusBanner(data.status, data.trackingCode);
 
   const steps = [
@@ -122,7 +143,7 @@ function OrderContent({ id, userId }: { id: string; userId: string }) {
       </header>
 
       {banner && (
-        <section className={`mt-8 rounded-3xl border p-6 shadow-soft ${banner.tone}`}>
+        <section className={"mt-8 rounded-3xl border p-6 shadow-soft " + banner.tone}>
           <h2 className="text-lg font-bold">{banner.title}</h2>
           <p className="mt-1.5 text-sm leading-relaxed opacity-90">{banner.desc}</p>
 
@@ -133,11 +154,11 @@ function OrderContent({ id, userId }: { id: string; userId: string }) {
               return (
                 <div
                   key={s.id}
-                  className={`flex items-center gap-2.5 rounded-2xl border px-3.5 py-3 text-xs font-bold transition ${
+                  className={"flex items-center gap-2.5 rounded-2xl border px-3.5 py-3 text-xs font-bold transition " + (
                     active
                       ? "border-burgundy-700 bg-burgundy-700 text-ivory-50 shadow-soft"
                       : "border-ivory-300 bg-ivory-50/80 text-ink-500"
-                  }`}
+                  )}
                 >
                   <Icon className="h-4 w-4 shrink-0" />
                   <span>{s.label}</span>
@@ -158,7 +179,7 @@ function OrderContent({ id, userId }: { id: string; userId: string }) {
                   <p className="font-medium text-ink-900">{item.productName}</p>
                   <p className="text-ink-500">
                     {item.brand}
-                    {item.variantLabel ? ` · ${item.variantLabel}` : ""}
+                    {item.variantLabel ? " · " + item.variantLabel : ""}
                   </p>
                   <p className="text-ink-500">تعداد: {item.quantity.toLocaleString("fa-IR")}</p>
                 </div>
@@ -182,7 +203,7 @@ function OrderContent({ id, userId }: { id: string; userId: string }) {
               <p dir="ltr" className="text-start text-ink-500">
                 کد پستی: {data.postalCode}
               </p>
-              <p>{DELIVERY_LABELS[data.deliveryMethod]}</p>
+              <p>{DELIVERY_LABELS[data.deliveryMethod]} (از مبدأ مشهد)</p>
             </div>
           </div>
 
@@ -191,24 +212,40 @@ function OrderContent({ id, userId }: { id: string; userId: string }) {
               <dt className="text-ink-700">جمع اقلام</dt>
               <dd>{formatToman(data.subtotalToman)}</dd>
             </div>
-            <div className="flex justify-between">
-              <dt className="text-ink-700">هزینه ارسال</dt>
-              <dd>{data.deliveryFeeToman === 0 ? "رایگان" : formatToman(data.deliveryFeeToman)}</dd>
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <dt className="text-ink-700">هزینه ارسال (نرخ ۱۴۰۵)</dt>
+                <p className="mt-0.5 text-[11px] text-ink-500">{dynamicPricing.quote.zoneLabel}</p>
+              </div>
+              <dd className="shrink-0 font-medium">
+                {data.deliveryFeeToman === 0 ? "رایگان" : formatToman(data.deliveryFeeToman)}
+              </dd>
             </div>
             <div className="flex justify-between border-t border-ivory-300 pt-4 text-base">
               <dt className="font-medium">مبلغ کل</dt>
-              <dd className="font-bold">{formatToman(data.totalToman)}</dd>
+              <dd className="font-bold text-burgundy-800">{formatToman(data.totalToman)}</dd>
             </div>
           </dl>
         </aside>
       </div>
+
+      {activeReceipt?.storagePath && (
+        <section className="mt-8 rounded-3xl border border-ivory-300 bg-ivory-50 p-6 shadow-soft md:p-8">
+          <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-ink-900">
+            <Receipt className="h-5 w-5 text-burgundy-700" /> تصویر فیش واریزی ثبت‌شده شما
+          </h2>
+          <div className="max-w-xs">
+            <ReceiptPreview storagePath={activeReceipt.storagePath} />
+          </div>
+        </section>
+      )}
 
       {data.paymentProvider && (PAYABLE_STATUSES.includes(data.status) || data.status === "paid") && (
         <div className="mt-10">
           <OnlinePaymentPanel order={data} onChanged={order.retry} />
         </div>
       )}
-      {!data.paymentProvider && PAYABLE_STATUSES.includes(data.status) && (
+      {!data.paymentProvider && PAYABLE_STATUSES.includes(data.status) && !activeReceipt && (
         <div className="mt-10">
           <CardPaymentPanel order={data} userId={userId} onChanged={order.retry} />
         </div>

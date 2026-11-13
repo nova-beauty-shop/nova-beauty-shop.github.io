@@ -15,66 +15,9 @@ import { orderErrorMessage } from "@/lib/orderLabels";
 import { fetchPaymentGateways } from "@/lib/paymentGateways";
 import { fetchPaymentSettings, uploadReceipt, PaymentError } from "@/lib/payments";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
+import { PROVINCE_SHIPPING_TABLE, computeMashhadShipping } from "@/lib/storeSettings";
 import { supabase } from "@/lib/supabase";
 import { normalizeDigits } from "@/lib/digits";
-
-const PROVINCE_SHIPPING_TABLE: { province: string; capital: string; baseFee: number; countyExtra: number; eta: string }[] = [
-  { province: "خراسان رضوی", capital: "مشهد", baseFee: 55000, countyExtra: 17000, eta: "۱ روز کاری" },
-  { province: "خراسان شمالی", capital: "بجنورد", baseFee: 88000, countyExtra: 10000, eta: "۱ تا ۲ روز کاری" },
-  { province: "خراسان جنوبی", capital: "بیرجند", baseFee: 90000, countyExtra: 10000, eta: "۱ تا ۲ روز کاری" },
-  { province: "سمنان", capital: "سمنان", baseFee: 94000, countyExtra: 11000, eta: "۲ روز کاری" },
-  { province: "یزد", capital: "یزد", baseFee: 98000, countyExtra: 12000, eta: "۲ تا ۳ روز کاری" },
-  { province: "گلستان", capital: "گرگان", baseFee: 102000, countyExtra: 12000, eta: "۲ تا ۳ روز کاری" },
-  { province: "مازندران", capital: "ساری", baseFee: 108000, countyExtra: 13000, eta: "۲ تا ۳ روز کاری" },
-  { province: "کرمان", capital: "کرمان", baseFee: 110000, countyExtra: 14000, eta: "۲ تا ۴ روز کاری" },
-  { province: "تهران", capital: "تهران", baseFee: 115000, countyExtra: 12000, eta: "۲ تا ۳ روز کاری" },
-  { province: "البرز", capital: "کرج", baseFee: 118000, countyExtra: 12000, eta: "۲ تا ۳ روز کاری" },
-  { province: "قم", capital: "قم", baseFee: 112000, countyExtra: 10000, eta: "۲ تا ۳ روز کاری" },
-  { province: "مرکزی", capital: "اراک", baseFee: 116000, countyExtra: 13000, eta: "۳ تا ۴ روز کاری" },
-  { province: "قزوین", capital: "قزوین", baseFee: 118000, countyExtra: 13000, eta: "۳ تا ۴ روز کاری" },
-  { province: "اصفهان", capital: "اصفهان", baseFee: 120000, countyExtra: 14000, eta: "۳ تا ۴ روز کاری" },
-  { province: "گیلان", capital: "رشت", baseFee: 124000, countyExtra: 14000, eta: "۳ تا ۴ روز کاری" },
-  { province: "زنجان", capital: "زنجان", baseFee: 125000, countyExtra: 14000, eta: "۳ تا ۴ روز کاری" },
-  { province: "همدان", capital: "همدان", baseFee: 126000, countyExtra: 14000, eta: "۳ تا ۴ روز کاری" },
-  { province: "چهارمحال و بختیاری", capital: "شهرکرد", baseFee: 128000, countyExtra: 15000, eta: "۳ تا ۵ روز کاری" },
-  { province: "لرستان", capital: "خرم‌آباد", baseFee: 130000, countyExtra: 15000, eta: "۳ تا ۵ روز کاری" },
-  { province: "فارس", capital: "شیراز", baseFee: 132000, countyExtra: 15000, eta: "۳ تا ۵ روز کاری" },
-  { province: "کهگیلویه و بویراحمد", capital: "یاسوج", baseFee: 134000, countyExtra: 15000, eta: "۳ تا ۵ روز کاری" },
-  { province: "اردبیل", capital: "اردبیل", baseFee: 135000, countyExtra: 15000, eta: "۳ تا ۵ روز کاری" },
-  { province: "آذربایجان شرقی", capital: "تبریز", baseFee: 136000, countyExtra: 15000, eta: "۳ تا ۵ روز کاری" },
-  { province: "کردستان", capital: "سنندج", baseFee: 136000, countyExtra: 15000, eta: "۳ تا ۵ روز کاری" },
-  { province: "کرمانشاه", capital: "کرمانشاه", baseFee: 138000, countyExtra: 15000, eta: "۳ تا ۵ روز کاری" },
-  { province: "هرمزگان", capital: "بندرعباس", baseFee: 138000, countyExtra: 16000, eta: "۳ تا ۵ روز کاری" },
-  { province: "سیستان و بلوچستان", capital: "زاهدان", baseFee: 140000, countyExtra: 16000, eta: "۳ تا ۵ روز کاری" },
-  { province: "خوزستان", capital: "اهواز", baseFee: 140000, countyExtra: 16000, eta: "۳ تا ۵ روز کاری" },
-  { province: "بوشهر", capital: "بوشهر", baseFee: 142000, countyExtra: 16000, eta: "۳ تا ۵ روز کاری" },
-  { province: "ایلام", capital: "ایلام", baseFee: 142000, countyExtra: 16000, eta: "۴ تا ۵ روز کاری" },
-  { province: "آذربایجان غربی", capital: "ارومیه", baseFee: 145000, countyExtra: 16000, eta: "۴ تا ۵ روز کاری" },
-];
-
-function computeMashhadShipping(province: string, city: string, subtotal: number, itemCount: number, freeThreshold: number) {
-  const cleanProv = province.trim();
-  const cleanCity = city.trim();
-  const isMashhad = cleanCity.includes("مشهد");
-  const found = PROVINCE_SHIPPING_TABLE.find((p) => p.province === cleanProv || cleanProv.includes(p.province));
-  const base = isMashhad ? 55000 : found ? found.baseFee : 120000;
-  const isCapital = isMashhad || (found ? (cleanCity.length === 0 || cleanCity.includes(found.capital) || found.capital.includes(cleanCity)) : true);
-  const countyFee = isCapital ? 0 : (found ? found.countyExtra : 14000);
-  const extraItemsFee = Math.min(60000, Math.max(0, itemCount - 1) * 10000);
-  const threshold = freeThreshold >= 1000000 ? freeThreshold : 2000000;
-  const isFree = subtotal >= threshold;
-  const feeToman = isFree ? 0 : (base + countyFee + extraItemsFee);
-  const zoneLabel = isMashhad
-    ? "ارسال درون‌شهری مشهد (مبدأ فروشگاه)"
-    : found
-      ? "پست پیشتاز از مشهد به " + found.province + (cleanCity ? " (" + cleanCity + ")" : "")
-      : "پست پیشتاز از مبدأ مشهد";
-  const etaLabel = isMashhad ? "۱ روز کاری" : (found ? found.eta : "۳ تا ۵ روز کاری");
-  const parts = ["تعرفه مبدأ مشهد: " + formatToman(base)];
-  if (countyFee > 0) parts.push("رهسپاری شهرستان (" + cleanCity + "): +" + formatToman(countyFee));
-  if (extraItemsFee > 0) parts.push("بسته‌بندی " + itemCount.toLocaleString("fa-IR") + " کالا: +" + formatToman(extraItemsFee));
-  return { feeToman, isFree, zoneLabel, etaLabel, breakdownLabel: parts.join(" · ") };
-}
 
 function onlyDigits(val: string): string {
   return normalizeDigits(val).split("").filter((c) => c >= "0" && c <= "9").join("");
