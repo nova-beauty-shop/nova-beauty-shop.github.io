@@ -8,6 +8,7 @@ import { ErrorState, SkeletonGrid } from "@/components/common/StateViews";
 import { useAsync } from "@/hooks/useAsync";
 import { advanceOrderStatusTo, fetchAdminOrderDetail, type AdminOrderDetail as Detail } from "@/lib/adminOrders";
 import { formatDate, formatToman } from "@/lib/format";
+import { resolveOrderDynamicTotals } from "@/lib/storeSettings";
 import { DELIVERY_LABELS, ORDER_STATUS_LABELS } from "@/lib/orderLabels";
 import { reviewReceipt } from "@/lib/payments";
 import type { AdminAccess } from "@/lib/adminSettings";
@@ -309,7 +310,7 @@ function AdminOrderDetailContent({ orderId, access }: { orderId: string; access:
                 </ul>
                 <dl className="mt-4 space-y-2 border-t border-ivory-300 pt-4 text-sm">
                   <Row label="جمع اقلام" value={formatToman(order.data.subtotalToman)} />
-                  <Row label="هزینه ارسال" value={order.data.deliveryFeeToman === 0 ? "رایگان" : formatToman(order.data.deliveryFeeToman)} />
+                  <Row label="هزینه ارسال" value={resolveOrderDynamicTotals({ province: order.data.province, city: order.data.city, subtotalToman: order.data.subtotalToman, dbDeliveryFeeToman: order.data.deliveryFeeToman, dbTotalToman: resolveOrderDynamicTotals({ province: order.data.province, city: order.data.city, subtotalToman: order.data.subtotalToman, dbDeliveryFeeToman: order.data.deliveryFeeToman, dbTotalToman: order.data.totalToman, itemCount: order.data.items.reduce((s, i) => s + i.quantity, 0) }).totalToman, itemCount: order.data.items.reduce((s, i) => s + i.quantity, 0) }).deliveryFeeToman === 0 ? "رایگان" : formatToman(order.data.deliveryFeeToman)} />
                   <Row label="مبلغ کل سفارش" value={formatToman(order.data.totalToman)} strong />
                 </dl>
               </Card>

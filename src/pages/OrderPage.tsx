@@ -8,6 +8,8 @@ import { useAsync } from "@/hooks/useAsync";
 import { formatDate, formatToman } from "@/lib/format";
 import { fetchOrder, type OrderStatus } from "@/lib/orders";
 import { DELIVERY_LABELS, ORDER_STATUS_LABELS } from "@/lib/orderLabels";
+import { useStoreSettings } from "@/hooks/useStoreSettings";
+import { resolveOrderDynamicTotals } from "@/lib/storeSettings";
 
 const PAYABLE_STATUSES: OrderStatus[] = ["awaiting_payment", "pending_review", "paid"];
 
@@ -93,6 +95,8 @@ function OrderContent({ id, userId }: { id: string; userId: string }) {
   }
 
   const data = order.data;
+  const totalItemCount = data.items.reduce((sum, it) => sum + it.quantity, 0);
+  const dynamicPricing = resolveOrderDynamicTotals({ province: data.province, city: data.city, subtotalToman: data.subtotalToman, dbDeliveryFeeToman: data.deliveryFeeToman, dbTotalToman: data.totalToman, itemCount: totalItemCount, freeThreshold: store.data?.courierFreeThresholdToman ?? 2000000 });
   const banner = getCustomerStatusBanner(data.status, data.trackingCode);
 
   const steps = [

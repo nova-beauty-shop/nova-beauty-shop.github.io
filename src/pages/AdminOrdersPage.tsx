@@ -10,6 +10,7 @@ import { ADMIN_ORDER_PAGE_SIZE, advanceOrderStatusTo, fetchAdminOrderPage, type 
 import { formatDate, formatToman } from "@/lib/format";
 import { ORDER_STATUS_LABELS } from "@/lib/orderLabels";
 import { reviewReceipt } from "@/lib/payments";
+import { resolveOrderDynamicTotals } from "@/lib/storeSettings";
 
 type QuickTab = "all" | "needs_approval" | "pending_send" | "completed";
 
@@ -73,6 +74,10 @@ function AdminOrderCard({ row, onUpdated }: { row: AdminOrderRow; onUpdated: () 
   const [notice, setNotice] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const latestReceipt = row.payments[0] ?? null;
+  const itemsSum = row.items.reduce((s, it) => s + it.lineTotalToman, 0);
+  const itemsCnt = row.items.reduce((s, it) => s + it.quantity, 0);
+  const adminCalc = resolveOrderDynamicTotals({ province: row.province, city: row.city, subtotalToman: itemsSum > 0 ? itemsSum : row.totalToman, dbDeliveryFeeToman: 50000, dbTotalToman: row.totalToman, itemCount: itemsCnt });
+  const displayTotalToman = itemsSum > 0 ? adminCalc.totalToman : row.totalToman;
   const pendingReceipt = row.payments.find((p) => p.status === "pending") ?? null;
   const isStep1Done = ["paid", "processing", "preparing", "shipped", "delivered"].includes(row.status);
   const isStep2Done = ["shipped", "delivered"].includes(row.status);
@@ -156,7 +161,7 @@ function AdminOrderCard({ row, onUpdated }: { row: AdminOrderRow; onUpdated: () 
           <p className="mt-1 text-xs text-ink-500">کد پستی: <span dir="ltr" className="font-mono">{row.postalCode}</span></p>
         </div>
         <div className="rounded-2xl border border-ivory-300 bg-ivory-100/60 p-4">
-          <div className="flex items-center justify-between"><h3 className="text-xs font-bold text-burgundy-700">۲. چیزهایی که سفارش داده</h3><span className="text-xs font-bold text-ink-900">جمع کل: {formatToman(row.totalToman)}</span></div>
+          <div className="flex items-center justify-between"><h3 className="text-xs font-bold text-burgundy-700">۲. چیزهایی که سفارش داده</h3><span className="text-xs font-bold text-ink-900">جمع کل (با ارسال): {formatToman(displayTotalToman)}</span></div>
           <ul className="mt-2 divide-y divide-ivory-300 text-xs">
             {row.items.map((item) => (
               <li key={item.id} className="flex items-center justify-between gap-2 py-2"><div><p className="font-bold text-ink-900">{item.productName}</p><p className="text-[11px] text-ink-500">{item.brand} {item.variantLabel ? "· " + item.variantLabel : ""}</p></div><span className="shrink-0 rounded-lg bg-burgundy-700/10 px-2.5 py-1 font-bold text-burgundy-800">{item.quantity} عدد</span></li>

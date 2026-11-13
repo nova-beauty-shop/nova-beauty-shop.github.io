@@ -9,6 +9,7 @@ import { formatDate, formatToman } from "@/lib/format";
 import { ORDER_STATUS_LABELS } from "@/lib/orderLabels";
 import { fetchUserOrders } from "@/lib/orders";
 import { supabase } from "@/lib/supabase";
+import { resolveOrderDynamicTotals } from "@/lib/storeSettings";
 
 export default function OrdersPage() {
   return <RequireAuth>{() => <OrdersContent />}</RequireAuth>;
@@ -17,6 +18,7 @@ export default function OrdersPage() {
 function OrdersContent() {
   const orders = useAsync(fetchUserOrders, []);
   const [receiptMap, setReceiptMap] = useState<Record<string, string>>({});
+  const [dynamicTotalMap, setDynamicTotalMap] = useState<Record<string, number>>({});
   const isSuccess = typeof window !== "undefined" && window.location.search.includes("success=true");
 
   useEffect(() => {
@@ -39,6 +41,16 @@ function OrdersContent() {
         }
       }
       setReceiptMap(map);
+      const { data: orderRows } = await supabase.from("orders").select("id, province, city, subtotal_toman, delivery_fee_toman, total_toman, items:order_items(quantity)").in("id", ids);
+      if (Array.isArray(orderRows)) {
+        const tMap: Record<string, number> = {};
+        for (const r of orderRows as any[]) {
+          const cnt = Array.isArray(r.items) ? r.items.reduce((s: number, it: any) => s + Number(it.quantity || 1), 0) : 1;
+          const calc = resolveOrderDynamicTotals({ province: String(r.province || ""), city: String(r.city || ""), subtotalToman: Number(r.subtotal_toman || 0), dbDeliveryFeeToman: Number(r.delivery_fee_toman || 0), dbTotalToman: Number(r.total_toman || 0), itemCount: cnt });
+          tMap[r.id] = calc.totalToman;
+        }
+        setDynamicTotalMap(tMap);
+      }
     }
     void loadUserReceipts();
   }, [orders.data]);
@@ -79,7 +91,7 @@ function OrdersContent() {
                     </div>
                     <div className="flex flex-wrap items-center gap-3 text-sm">
                       <span className="rounded-full bg-ivory-200 px-3 py-1 text-xs font-bold text-ink-800">{ORDER_STATUS_LABELS[order.status]}</span>
-                      <span className="font-bold text-burgundy-800">{formatToman(order.totalToman)}</span>
+                      <span className="font-bold text-burgundy-800">{formatToman(dynamicTotalMap[order.id] ?? order.totalToman)}</span>
                       <Link to={"/account/orders/" + order.id} className="btn-outline h-9 px-4 text-xs">جزئیات سفارش</Link>
                     </div>
                   </div>
