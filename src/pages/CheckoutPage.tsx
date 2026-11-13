@@ -238,7 +238,7 @@ function CheckoutContent() {
 
       const cleanPostal = onlyDigits(postalCode);
       const finalPostal = cleanPostal.length === 10 ? cleanPostal : "9188888888";
-      const savedAddr = await createAddress({
+      await createAddress({
         recipientName: recipientName.trim(),
         phone: cleanPhone,
         province: province.trim(),
@@ -246,9 +246,12 @@ function CheckoutContent() {
         street: street.trim(),
         postalCode: finalPostal,
       });
+      const updatedAddresses = await fetchAddresses();
+      const targetAddress = updatedAddresses.find((a) => a.recipientName === recipientName.trim() && a.street === street.trim() && a.city === city.trim()) || updatedAddresses[0];
+      if (!targetAddress?.id) throw new Error("خطا در بازیابی شناسه نشانی ثبت‌شده");
 
       const orderId = await placeOrder({
-        addressId: savedAddr.id,
+        addressId: targetAddress.id,
         deliveryMethod: "post",
         deliverySlot: null,
         items: details.lines.map(({ line, quantity }) => ({
