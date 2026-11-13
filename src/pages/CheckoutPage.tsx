@@ -7,19 +7,88 @@ import { useAsync } from "@/hooks/useAsync";
 import { useCartDetails } from "@/hooks/useCartDetails";
 import { usePromotionPreview } from "@/hooks/usePromotionPreview";
 import { useShop } from "@/hooks/useShop";
-import { fetchAddresses } from "@/lib/addresses";
+import { fetchAddresses, createAddress } from "@/lib/addresses";
 import { formatToman } from "@/lib/format";
 import { navigate } from "@/lib/navigation";
 import { OrderError, placeOrder } from "@/lib/orders";
 import { orderErrorMessage } from "@/lib/orderLabels";
 import { fetchPaymentGateways } from "@/lib/paymentGateways";
-import { fetchPaymentSettings, startOnlinePayment } from "@/lib/payments";
+import { fetchPaymentSettings } from "@/lib/payments";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
-import { calculateDynamicShipping, IRAN_PROVINCES } from "@/lib/storeSettings";
 import { supabase } from "@/lib/supabase";
 import { normalizeDigits } from "@/lib/digits";
 
-type PaymentMethod = "card" | "online";
+const PROVINCE_SHIPPING_TABLE: { province: string; capital: string; baseFee: number; countyExtra: number; eta: string }[] = [
+  { province: "خراسان رضوی", capital: "مشهد", baseFee: 55000, countyExtra: 17000, eta: "۱ روز کاری" },
+  { province: "خراسان شمالی", capital: "بجنورد", baseFee: 88000, countyExtra: 10000, eta: "۱ تا ۲ روز کاری" },
+  { province: "خراسان جنوبی", capital: "بیرجند", baseFee: 90000, countyExtra: 10000, eta: "۱ تا ۲ روز کاری" },
+  { province: "سمنان", capital: "سمنان", baseFee: 94000, countyExtra: 11000, eta: "۲ روز کاری" },
+  { province: "یزد", capital: "یزد", baseFee: 98000, countyExtra: 12000, eta: "۲ تا ۳ روز کاری" },
+  { province: "گلستان", capital: "گرگان", baseFee: 102000, countyExtra: 12000, eta: "۲ تا ۳ روز کاری" },
+  { province: "مازندران", capital: "ساری", baseFee: 108000, countyExtra: 13000, eta: "۲ تا ۳ روز کاری" },
+  { province: "کرمان", capital: "کرمان", baseFee: 110000, countyExtra: 14000, eta: "۲ تا ۴ روز کاری" },
+  { province: "تهران", capital: "تهران", baseFee: 115000, countyExtra: 12000, eta: "۲ تا ۳ روز کاری" },
+  { province: "البرز", capital: "کرج", baseFee: 118000, countyExtra: 12000, eta: "۲ تا ۳ روز کاری" },
+  { province: "قم", capital: "قم", baseFee: 112000, countyExtra: 10000, eta: "۲ تا ۳ روز کاری" },
+  { province: "مرکزی", capital: "اراک", baseFee: 116000, countyExtra: 13000, eta: "۳ تا ۴ روز کاری" },
+  { province: "قزوین", capital: "قزوین", baseFee: 118000, countyExtra: 13000, eta: "۳ تا ۴ روز کاری" },
+  { province: "اصفهان", capital: "اصفهان", baseFee: 120000, countyExtra: 14000, eta: "۳ تا ۴ روز کاری" },
+  { province: "گیلان", capital: "رشت", baseFee: 124000, countyExtra: 14000, eta: "۳ تا ۴ روز کاری" },
+  { province: "زنجان", capital: "زنجان", baseFee: 125000, countyExtra: 14000, eta: "۳ تا ۴ روز کاری" },
+  { province: "همدان", capital: "همدان", baseFee: 126000, countyExtra: 14000, eta: "۳ تا ۴ روز کاری" },
+  { province: "چهارمحال و بختیاری", capital: "شهرکرد", baseFee: 128000, countyExtra: 15000, eta: "۳ تا ۵ روز کاری" },
+  { province: "لرستان", capital: "خرم‌آباد", baseFee: 130000, countyExtra: 15000, eta: "۳ تا ۵ روز کاری" },
+  { province: "فارس", capital: "شیراز", baseFee: 132000, countyExtra: 15000, eta: "۳ تا ۵ روز کاری" },
+  { province: "کهگیلویه و بویراحمد", capital: "یاسوج", baseFee: 134000, countyExtra: 15000, eta: "۳ تا ۵ روز کاری" },
+  { province: "اردبیل", capital: "اردبیل", baseFee: 135000, countyExtra: 15000, eta: "۳ تا ۵ روز کاری" },
+  { province: "آذربایجان شرقی", capital: "تبریز", baseFee: 136000, countyExtra: 15000, eta: "۳ تا ۵ روز کاری" },
+  { province: "کردستان", capital: "سنندج", baseFee: 136000, countyExtra: 15000, eta: "۳ تا ۵ روز کاری" },
+  { province: "کرمانشاه", capital: "کرمانشاه", baseFee: 138000, countyExtra: 15000, eta: "۳ تا ۵ روز کاری" },
+  { province: "هرمزگان", capital: "بندرعباس", baseFee: 138000, countyExtra: 16000, eta: "۳ تا ۵ روز کاری" },
+  { province: "سیستان و بلوچستان", capital: "زاهدان", baseFee: 140000, countyExtra: 16000, eta: "۳ تا ۵ روز کاری" },
+  { province: "خوزستان", capital: "اهواز", baseFee: 140000, countyExtra: 16000, eta: "۳ تا ۵ روز کاری" },
+  { province: "بوشهر", capital: "بوشهر", baseFee: 142000, countyExtra: 16000, eta: "۳ تا ۵ روز کاری" },
+  { province: "ایلام", capital: "ایلام", baseFee: 142000, countyExtra: 16000, eta: "۴ تا ۵ روز کاری" },
+  { province: "آذربایجان غربی", capital: "ارومیه", baseFee: 145000, countyExtra: 16000, eta: "۴ تا ۵ روز کاری" },
+];
+
+function computeMashhadShipping(province: string, city: string, subtotal: number, itemCount: number, freeThreshold: number) {
+  const cleanProv = province.trim();
+  const cleanCity = city.trim();
+  const isMashhad = cleanCity.includes("مشهد");
+  const found = PROVINCE_SHIPPING_TABLE.find((p) => p.province === cleanProv || cleanProv.includes(p.province));
+  const base = isMashhad ? 55000 : found ? found.baseFee : 120000;
+  const isCapital = isMashhad || (found ? (cleanCity.length === 0 || cleanCity.includes(found.capital) || found.capital.includes(cleanCity)) : true);
+  const countyFee = isCapital ? 0 : (found ? found.countyExtra : 14000);
+  const extraItemsFee = Math.min(60000, Math.max(0, itemCount - 1) * 10000);
+  const threshold = freeThreshold >= 1000000 ? freeThreshold : 2000000;
+  const isFree = subtotal >= threshold;
+  const feeToman = isFree ? 0 : (base + countyFee + extraItemsFee);
+  const zoneLabel = isMashhad
+    ? "ارسال درون‌شهری مشهد (مبدأ فروشگاه)"
+    : found
+      ? "پست پیشتاز از مشهد به " + found.province + (cleanCity ? " (" + cleanCity + ")" : "")
+      : "پست پیشتاز از مبدأ مشهد";
+  const etaLabel = isMashhad ? "۱ روز کاری" : (found ? found.eta : "۳ تا ۵ روز کاری");
+  const parts = ["تعرفه مبدأ مشهد: " + formatToman(base)];
+  if (countyFee > 0) parts.push("رهسپاری شهرستان (" + cleanCity + "): +" + formatToman(countyFee));
+  if (extraItemsFee > 0) parts.push("بسته‌بندی " + itemCount.toLocaleString("fa-IR") + " کالا: +" + formatToman(extraItemsFee));
+  return { feeToman, isFree, zoneLabel, etaLabel, breakdownLabel: parts.join(" · ") };
+}
+
+function onlyDigits(val: string): string {
+  return normalizeDigits(val).split("").filter((c) => c >= "0" && c <= "9").join("");
+}
+
+function formatCardDigits(raw: string): string {
+  const digits = onlyDigits(raw);
+  if (!digits) return "---- ---- ---- ----";
+  const groups: string[] = [];
+  for (let i = 0; i < digits.length; i += 4) {
+    groups.push(digits.slice(i, i + 4));
+  }
+  return groups.join(" ");
+}
 
 async function loadPaymentOptions() {
   const [settings, gateways, rawSettingsRes] = await Promise.all([
@@ -29,12 +98,7 @@ async function loadPaymentOptions() {
   ]);
   const rawRow = (rawSettingsRes?.data || {}) as Record<string, any>;
   const mergedSettings = { ...rawRow, ...(settings || {}) } as Record<string, any>;
-  const cNum = String(mergedSettings.cardNumber || mergedSettings.card_number || "").trim();
-  return {
-    cardEnabled: (mergedSettings.cardPaymentEnabled === true || mergedSettings.card_payment_enabled === true || cNum.length > 0),
-    settings: mergedSettings,
-    online: gateways,
-  };
+  return { settings: mergedSettings, online: gateways };
 }
 
 async function compressReceiptImage(file: File): Promise<{ blob: Blob; dataUrl: string }> {
@@ -88,7 +152,6 @@ function CheckoutContent() {
   const [postalCode, setPostalCode] = useState("");
   const [prefilled, setPrefilled] = useState(false);
 
-  const [paymentChoice, setPaymentChoice] = useState<PaymentMethod | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -119,32 +182,25 @@ function CheckoutContent() {
   if (details.loading || !store.data || !paymentOptions.data) return <div className="container-nova py-12"><SkeletonGrid count={2} /></div>;
 
   const options = paymentOptions.data;
-  const paymentMethod: PaymentMethod = paymentChoice ?? "card";
   const subtotal = details.subtotal;
   const totalItemCount = details.lines.reduce((acc, item) => acc + item.quantity, 0);
 
   const hasLocation = province.trim().length > 0;
-  const shippingQuote = calculateDynamicShipping({
-    province: province.trim() || null,
-    city: city.trim() || null,
-    subtotalToman: subtotal,
-    itemCount: totalItemCount,
-    settings: store.data,
-  });
+  const shippingQuote = computeMashhadShipping(province, city, subtotal, totalItemCount, store.data.courierFreeThresholdToman);
   const deliveryFee = hasLocation ? shippingQuote.feeToman : 0;
   const discount = promo.discount;
   const total = Math.max(0, subtotal - discount + deliveryFee);
 
-  const cleanPhone = normalizeDigits(phone.trim());
-  const isAddressValid = recipientName.trim().length >= 2 && cleanPhone.length >= 10 && province.trim().length >= 2 && city.trim().length >= 2 && street.trim().length >= 4;
-  const cardFormValid = receiptBase64 !== null && payerName.trim().length >= 2 && normalizeDigits(cardLast4.trim()).length === 4;
+  const cleanPhone = onlyDigits(phone);
+  const isAddressValid = recipientName.trim().length >= 2 && cleanPhone.length === 11 && cleanPhone.startsWith("0") && province.trim().length >= 2 && city.trim().length >= 2 && street.trim().length >= 4;
+  const cardFormValid = receiptBase64 !== null && payerName.trim().length >= 2 && onlyDigits(cardLast4).length === 4;
   const canSubmit = !submitting && isAddressValid && details.unavailableCount === 0 && details.lines.length > 0 && cardFormValid;
 
   const s = (options.settings || {}) as Record<string, any>;
   const st = (store.data || {}) as Record<string, any>;
   const bankName = String(s.bankName || s.bank_name || st.bankName || st.bank_name || "بلو بانک").trim();
-  const rawCard = String(s.cardNumber || s.card_number || st.cardNumber || st.card_number || "").split("").filter((c) => c >= "0" && c <= "9").join("");
-  const formattedCard = rawCard.replace(/(.{4})(?!$)/g, "$1 ") || "---- ---- ---- ----";
+  const rawCard = onlyDigits(String(s.cardNumber || s.card_number || st.cardNumber || st.card_number || ""));
+  const formattedCard = formatCardDigits(rawCard);
   const ownerKey = Object.keys(s).find((k) => /holder|owner/i.test(k) && typeof s[k] === "string" && s[k].trim().length > 0);
   const accountOwner = String(s.cardHolder || s.card_holder || s.cardHolderName || s.card_holder_name || s.accountOwner || s.account_owner || s.holderName || s.holder_name || (ownerKey ? s[ownerKey] : "") || st.cardHolder || st.accountOwner || "فروشگاه نُوا").trim();
   const ibanKey = Object.keys(s).find((k) => /iban|shaba|sheba/i.test(k) && typeof s[k] === "string" && s[k].trim().length > 0);
@@ -180,27 +236,19 @@ function CheckoutContent() {
       const userId = userData.user?.id;
       if (!userId) throw new Error("برای ثبت سفارش ابتدا وارد حساب کاربری خود شوید.");
 
-      const cleanPostal = normalizeDigits(postalCode.trim());
-      const finalPostal = cleanPostal.length === 10 ? cleanPostal : "1111111111";
-      const { data: newAddr, error: addrErr } = await supabase
-        .from("addresses")
-        .insert({
-          user_id: userId,
-          label: "نشانی سفارش",
-          recipient_name: recipientName.trim(),
-          phone: cleanPhone,
-          province: province.trim(),
-          city: city.trim(),
-          street: street.trim(),
-          postal_code: finalPostal,
-          is_default: true,
-        })
-        .select("id")
-        .single();
-      if (addrErr || !newAddr) throw new Error("خطا در ثبت نشانی: لطفاً فیلدهای آدرس را بررسی کنید.");
+      const cleanPostal = onlyDigits(postalCode);
+      const finalPostal = cleanPostal.length === 10 ? cleanPostal : "9188888888";
+      const savedAddr = await createAddress({
+        recipientName: recipientName.trim(),
+        phone: cleanPhone,
+        province: province.trim(),
+        city: city.trim(),
+        street: street.trim(),
+        postalCode: finalPostal,
+      });
 
       const orderId = await placeOrder({
-        addressId: newAddr.id,
+        addressId: savedAddr.id,
         deliveryMethod: "post",
         deliverySlot: null,
         items: details.lines.map(({ line, quantity }) => ({
@@ -238,7 +286,7 @@ function CheckoutContent() {
           localStorage.setItem("nova_receipt_path_" + finalStoragePath, receiptBase64);
         } catch {}
 
-        const cleanLast4 = normalizeDigits(cardLast4.trim());
+        const cleanLast4 = onlyDigits(cardLast4);
         const cleanTrack = trackingCode.trim();
         const receiptPayload: Record<string, any> = {
           order_id: orderId,
@@ -261,7 +309,7 @@ function CheckoutContent() {
       clearCart();
       navigate("/account/orders?success=true", { replace: true });
     } catch (err: any) {
-      setSubmitError(err.message || orderErrorMessage(err instanceof OrderError ? err.code : ""));
+      setSubmitError(err?.message || orderErrorMessage(err instanceof OrderError ? err.code : ""));
       setSubmitting(false);
     }
   }
@@ -306,14 +354,14 @@ function CheckoutContent() {
                 <input type="text" value={recipientName} onChange={(e) => setRecipientName(e.target.value)} placeholder="مثلاً سارا محمدی" className="field w-full rounded-xl border border-ivory-300 bg-white px-3.5 py-2.5 text-sm text-ink-900 focus:border-burgundy-700 focus:outline-none" />
               </div>
               <div>
-                <label className="mb-1.5 block text-xs font-bold text-ink-700">شماره موبایل گیرنده *</label>
-                <input type="tel" dir="ltr" maxLength={11} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0915..." className="field w-full rounded-xl border border-ivory-300 bg-white px-3.5 py-2.5 text-right text-sm text-ink-900 focus:border-burgundy-700 focus:outline-none" />
+                <label className="mb-1.5 block text-xs font-bold text-ink-700">شماره موبایل ۱۱ رقمی *</label>
+                <input type="tel" dir="ltr" maxLength={11} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="09151234567" className="field w-full rounded-xl border border-ivory-300 bg-white px-3.5 py-2.5 text-right text-sm text-ink-900 focus:border-burgundy-700 focus:outline-none" />
               </div>
               <div>
-                <label className="mb-1.5 block text-xs font-bold text-ink-700">استان مقصد (برای محاسبه خودکار کرایه پستی) *</label>
-                <select value={province} onChange={(e) => { const p = e.target.value; setProvince(p); const found = IRAN_PROVINCES.find((x) => x.province === p); if (found && !city) setCity(found.capital); }} className="field w-full rounded-xl border border-ivory-300 bg-white px-3.5 py-2.5 text-sm text-ink-900 focus:border-burgundy-700 focus:outline-none">
+                <label className="mb-1.5 block text-xs font-bold text-ink-700">استان مقصد (محاسبه خودکار کرایه) *</label>
+                <select value={province} onChange={(e) => { const p = e.target.value; setProvince(p); const found = PROVINCE_SHIPPING_TABLE.find((x) => x.province === p); setCity(found ? found.capital : ""); }} className="field w-full rounded-xl border border-ivory-300 bg-white px-3.5 py-2.5 text-sm text-ink-900 focus:border-burgundy-700 focus:outline-none">
                   <option value="">انتخاب استان مقصد...</option>
-                  {IRAN_PROVINCES.map((p) => (
+                  {PROVINCE_SHIPPING_TABLE.map((p) => (
                     <option key={p.province} value={p.province}>{p.province}</option>
                   ))}
                 </select>
@@ -367,24 +415,24 @@ function CheckoutContent() {
                 لطفاً مبلغ قابل واریز (<b className="text-burgundy-800">{formatToman(total)}</b>) را به شماره کارت زیر واریز نموده و مشخصات و تصویر فیش را در کادر پایین وارد کنید.
               </p>
 
-              {/* کارت بانکی کامل و واکنش‌گرا برای موبایل */}
+              {/* کارت بانکی تراز شده و بدون بیرون‌زدگی شماره کارت در موبایل */}
               <div className="relative mb-5 overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800 via-slate-900 to-black p-4 sm:p-6 text-white shadow-xl">
-                <div className="mb-4 flex items-center justify-between">
+                <div className="mb-3.5 flex items-center justify-between">
                   <span className="rounded-lg bg-white/10 px-3 py-1 text-xs sm:text-sm font-bold text-amber-300">{bankName}</span>
                   <CreditCard className="h-5 w-5 opacity-60" />
                 </div>
-                <div onClick={() => copyToClipboard(rawCard, "شماره کارت")} className="mb-4 flex cursor-pointer items-center justify-between gap-2 rounded-xl border border-white/15 bg-white/10 px-3 py-3 transition hover:bg-white/15">
-                  <span className="flex shrink-0 items-center gap-1 rounded-lg bg-amber-400/20 px-2 py-1 text-[11px] font-bold text-amber-300">
-                    <Copy className="h-3.5 w-3.5" /> کپی
+                <div onClick={() => copyToClipboard(rawCard, "شماره کارت")} className="mb-4 flex cursor-pointer items-center justify-between gap-2 overflow-hidden rounded-xl border border-white/15 bg-white/10 px-2 py-2.5 transition hover:bg-white/15">
+                  <span className="flex shrink-0 items-center gap-1 rounded-lg bg-amber-400/20 px-2 py-1 text-[10px] font-bold text-amber-300">
+                    <Copy className="h-3 w-3" /> کپی
                   </span>
-                  <span dir="ltr" style={{ fontSize: "14px", letterSpacing: "0.08em" }} className="flex-1 text-center font-mono font-bold text-white whitespace-nowrap sm:!text-xl">
+                  <span dir="ltr" style={{ fontSize: "11.5px", letterSpacing: "0.02em" }} className="min-w-0 flex-1 text-center font-mono font-bold text-white whitespace-nowrap sm:!text-lg sm:!tracking-widest">
                     {formattedCard}
                   </span>
                 </div>
                 <div className="space-y-2.5 border-t border-white/15 pt-3 text-xs sm:text-sm">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-white/70">به نام (صاحب حساب):</span>
-                    <span className="font-bold text-white">{accountOwner}</span>
+                    <span className="text-white/70 shrink-0">به نام (صاحب حساب):</span>
+                    <span className="font-bold text-white truncate">{accountOwner}</span>
                   </div>
                   {shabaNumber && (
                     <div onClick={() => copyToClipboard(shabaNumber, "شماره شبا")} className="flex cursor-pointer items-center justify-between gap-2 rounded-lg bg-white/10 px-2.5 py-2 transition hover:bg-white/15">
@@ -407,7 +455,7 @@ function CheckoutContent() {
                 </div>
                 <div>
                   <label className="mb-1.5 block text-xs font-bold text-ink-700">۴ رقم آخر کارت شما *</label>
-                  <input type="text" dir="ltr" maxLength={4} value={cardLast4} onChange={(e) => setCardLast4(normalizeDigits(e.target.value).split("").filter((c) => c >= "0" && c <= "9").join(""))} placeholder="1234" className="field w-full rounded-xl border border-ivory-300 bg-ivory-50 px-3.5 py-2.5 text-right text-sm text-ink-900 focus:border-burgundy-700 focus:bg-white focus:outline-none" />
+                  <input type="text" dir="ltr" maxLength={4} value={cardLast4} onChange={(e) => setCardLast4(onlyDigits(e.target.value))} placeholder="1234" className="field w-full rounded-xl border border-ivory-300 bg-ivory-50 px-3.5 py-2.5 text-right text-sm text-ink-900 focus:border-burgundy-700 focus:bg-white focus:outline-none" />
                 </div>
                 <div className="sm:col-span-2">
                   <label className="mb-1.5 block text-xs font-bold text-ink-700">کد پیگیری / شماره ارجاع فیش (اختیاری)</label>
